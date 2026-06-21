@@ -525,7 +525,7 @@ let selected = null;
 let injections = 0;
 let log = [];
 let alreadySolved = false;
-let currentDifficulty = "easy";
+let currentDifficulty = "medium";
 let currentMode = "daily";
 
 // Seeded random for Daily consistency
@@ -775,6 +775,18 @@ function updateAll(){
 function showCongrats(){
   document.getElementById("statInjections").textContent = injections;
   document.getElementById("statNodes").textContent = LABELS.length;
+  
+  const modalNewBtn = document.getElementById("modalNewPuzzle");
+  if (currentMode === "daily") {
+    modalNewBtn.textContent = "✅ Daily Complete";
+    modalNewBtn.style.pointerEvents = "none";
+    modalNewBtn.style.opacity = "0.6";
+  } else {
+    modalNewBtn.textContent = "↻ New Puzzle";
+    modalNewBtn.style.pointerEvents = "auto";
+    modalNewBtn.style.opacity = "1";
+  }
+
   document.getElementById("modalBackdrop").classList.add("show");
 }
 
@@ -877,28 +889,67 @@ function inject(node, value){
 }
 
 // Mode Toggle
+// ==================== MODE & DIFFICULTY HANDLING ====================
+function updateUILockState(){
+  const isDaily = currentMode === "daily";
+  
+  // Difficulty buttons
+  document.querySelectorAll('.difficulty-btn').forEach(b => {
+    const isMedium = b.dataset.diff === "medium";
+    b.style.pointerEvents = isDaily ? "none" : "auto";
+    b.style.opacity = isDaily ? "0.5" : "1";
+    
+    // Force Medium as active in Daily mode
+    if (isDaily) {
+      if (isMedium) b.classList.add('active');
+      else b.classList.remove('active');
+    }
+  });
+
+  // New Puzzle button
+  const newPuzzleBtn = document.getElementById("newpuzzle");
+  if (newPuzzleBtn) {
+    newPuzzleBtn.style.pointerEvents = isDaily ? "none" : "auto";
+    newPuzzleBtn.style.opacity = isDaily ? "0.5" : "1";
+    newPuzzleBtn.textContent = isDaily ? "↻ Daily Puzzle (Locked)" : "↻ New Puzzle";
+  }
+}
+
+// Mode Toggle
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentMode = btn.dataset.mode;
+    updateUILockState();
     resetGame();
   });
 });
-
 // Difficulty buttons
 document.querySelectorAll('.difficulty-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (currentMode === "daily") return; // locked
     document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentDifficulty = btn.dataset.diff;
   });
 });
-
-document.getElementById("newpuzzle").addEventListener("click", resetGame);
+document.getElementById("newpuzzle").addEventListener("click", () => {
+  if (currentMode === "daily") {
+    setMessage("Daily puzzle is fixed. It updates at 3 AM EST.");
+    return;
+  }
+  resetGame();
+});
 document.getElementById("resetCurrent").addEventListener("click", resetCurrentPuzzle);
-document.getElementById("modalNewPuzzle").addEventListener("click", resetGame);
-document.getElementById("modalClose").addEventListener("click", hideCongrats);
+document.getElementById("modalNewPuzzle").addEventListener("click", () => {
+  hideCongrats();
+  if (currentMode === "daily") {
+    setMessage("Daily puzzle completed! Come back tomorrow at 3 AM EST for the next one.");
+    return;
+  }
+  resetGame();
+});document.getElementById("modalClose").addEventListener("click", hideCongrats);
 document.getElementById("modalBackdrop").addEventListener("click", (e) => {
   if(e.target.id === "modalBackdrop") hideCongrats();
 });
@@ -942,39 +993,76 @@ function resetCurrentPuzzle(){
   updateAll();
 }
 
+
+// Add this variable near the top with other `let` declarations
+let dailyPuzzleCache = null;
+
 function resetGame(){
   let n;
   let randFunc = Math.random;
 
   if(currentMode === "daily"){
-    const today = new Date().toISOString().slice(0,10);
-    const seed = today.split('-').reduce((sum, part) => sum + parseInt(part), 0);
-    randFunc = seededRandom(seed);
+    // Use cached puzzle if available (prevents regeneration on switch)
+    if (dailyPuzzleCache !== null) {
+      n = dailyPuzzleCache.n;
+      LABELS = [...dailyPuzzleCache.LABELS];
+      EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
+      POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
+      target = {...dailyPuzzleCache.target};
+      state = {};
+      LABELS.forEach(l => state[l] = 0);
 
-    if(currentDifficulty === "easy") n = 4;
-    else if(currentDifficulty === "medium") n = 5 + Math.floor(randFunc() * 2);
-    else n = 7 + Math.floor(randFunc() * 3);
+      buildGraphDOM();
+    } else {
+      // First time in Daily mode today — generate and cache
+      const now = new Date();
+      const today = new Date(now.getTime() - 3*60*60*1000); // 3 AM EST cutoff
+      const dateStr = today.toISOString().slice(0,10);
+      const seed = dateStr.split('-').reduce((sum, p) => sum + parseInt(p), 0);
+      randFunc = seededRandom(seed);
+      n = 5 + Math.floor(randFunc() * 2);
+      currentDifficulty = "medium";
+
+      const topo = buildGraphTopology(n, randFunc);
+      LABELS = topo.labels;
+      EDGES = topo.adj;
+      POS = computeLayout(LABELS);
+
+      buildGraphDOM();
+      generatePuzzle();
+
+      // Cache for the session
+      dailyPuzzleCache = {
+        n: n,
+        LABELS: [...LABELS],
+        EDGES: JSON.parse(JSON.stringify(EDGES)),
+        POS: JSON.parse(JSON.stringify(POS)),
+        target: {...target}
+      };
+    }
   } else {
+    // Unlimited mode - always generate new
+    dailyPuzzleCache = null;
     let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY : currentDifficulty === "medium" ? MIN_NODES_MED : MIN_NODES_HARD;
     let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY : currentDifficulty === "medium" ? MAX_NODES_MED : MAX_NODES_HARD;
     n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
+
+    const topo = buildGraphTopology(n, randFunc);
+    LABELS = topo.labels;
+    EDGES = topo.adj;
+    POS = computeLayout(LABELS);
+
+    buildGraphDOM();
+    generatePuzzle();
   }
 
-  const topo = buildGraphTopology(n);
-  LABELS = topo.labels;
-  EDGES = topo.adj;
-  POS = computeLayout(LABELS);
-
-  buildGraphDOM();
-  generatePuzzle();
-
+  // Common reset
   selected = null;
   injections = 0;
   log = [];
   alreadySolved = false;
   hideCongrats();
 
-  // Safe updates
   const nodeCountEl = document.getElementById("nodecount");
   if (nodeCountEl) nodeCountEl.textContent = n;
 
@@ -991,7 +1079,7 @@ function resetGame(){
   updateAll();
 }
 
-
+updateUILockState();
 resetGame();
 </script>
 </body>
