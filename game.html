@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIPPLE MAP — Signal Calibration</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root{
+  --void:#070a11;
+  --deep:#0c1220;
+  --panel:#10182a;
+  --panel-edge:#1d2740;
+  --grid:rgba(255,255,255,0.035);
+  --hi:#eef2fb;
+  --mid:#8d97b5;
+  --dim:#525c79;
+  --amber:#ffb454;
+  --amber-soft:rgba(255,180,84,0.18);
+  --cyan:#56e0c4;
+  --cyan-soft:rgba(86,224,196,0.16);
+  --coral:#ff7a8a;
+  --coral-soft:rgba(255,122,138,0.16);
+  --violet:#a99bff;
+}
+
+*{box-sizing:border-box;}
+
+html,body{
+  margin:0;
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse 900px 600px at 20% -10%, rgba(86,224,196,0.05), transparent 60%),
+    radial-gradient(ellipse 800px 700px at 100% 110%, rgba(255,180,84,0.05), transparent 60%),
+    var(--void);
+  color:var(--hi);
+  font-family:'Space Grotesk', system-ui, sans-serif;
+}
+
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:34px 34px;
+  opacity:0.6;
+}
+
+.shell{
+  position:relative; z-index:1;
+  max-width:1080px;
+  margin:0 auto;
+  padding:28px 20px 60px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:22px;
+}
+
+.title-block h1{
+  margin:0;
+  font-size:clamp(26px,4.2vw,38px);
+  font-weight:700;
+  letter-spacing:0.01em;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.title-block h1::before{
+  content:"";
+  width:11px; height:11px; border-radius:50%;
+  background:var(--amber);
+  box-shadow:0 0 14px 3px var(--amber-soft);
+  flex-shrink:0;
+}
+.title-block p{
+  margin:6px 0 0 23px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.08em;
+  color:var(--dim);
+  text-transform:uppercase;
+}
+
+.header-pill{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  padding:9px 16px;
+  border-radius:99px;
+  border:1px solid var(--panel-edge);
+  background:var(--panel);
+  color:var(--dim);
+  white-space:nowrap;
+}
+.header-pill span{ color:var(--mid); font-weight:600; }
+
+/* ---- congrats modal ---- */
+.modal-backdrop{
+  position:fixed; inset:0; z-index:50;
+  background:rgba(5,7,12,0.72);
+  backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.25s;
+  padding:20px;
+}
+.modal-backdrop.show{ opacity:1; pointer-events:auto; }
+
+.modal-card{
+  position:relative;
+  width:100%; max-width:360px;
+  background:var(--panel);
+  border:1px solid rgba(86,224,196,0.35);
+  border-radius:20px;
+  padding:34px 32px 28px;
+  text-align:center;
+  transform:scale(0.92) translateY(6px);
+  transition:transform 0.25s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 0 70px rgba(86,224,196,0.14);
+}
+.modal-backdrop.show .modal-card{ transform:scale(1) translateY(0); }
+
+.modal-close{
+  position:absolute; top:12px; right:14px;
+  background:none; border:none;
+  color:var(--dim); font-size:20px; line-height:1;
+  cursor:pointer; padding:4px;
+  transition:color 0.2s;
+}
+.modal-close:hover{ color:var(--hi); }
+
+.modal-icon{
+  width:52px; height:52px; margin:0 auto 16px;
+  border-radius:50%;
+  background:var(--cyan-soft);
+  border:1px solid rgba(86,224,196,0.4);
+  color:var(--cyan);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px;
+}
+
+.modal-card h2{ margin:0 0 6px; font-size:23px; }
+.modal-sub{ margin:0 0 22px; color:var(--mid); font-size:13px; line-height:1.5; }
+
+.modal-stats{ display:flex; justify-content:center; gap:30px; margin-bottom:24px; }
+.modal-stats .stat-num{
+  display:block;
+  font-family:'JetBrains Mono', monospace;
+  font-size:30px; font-weight:700;
+  color:var(--hi);
+}
+.modal-stats .stat-label{
+  display:block; margin-top:4px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--dim);
+}
+
+.modal-newpuzzle{
+  width:100%;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
+  padding:13px 0;
+  border-radius:10px;
+  border:1px solid rgba(86,224,196,0.4);
+  background:rgba(86,224,196,0.08);
+  color:var(--cyan);
+  cursor:pointer;
+  transition:background 0.2s;
+}
+.modal-newpuzzle:hover{ background:rgba(86,224,196,0.16); }
+
+.layout{
+  display:grid;
+  grid-template-columns: 1fr 300px;
+  gap:20px;
+}
+@media (max-width:760px){
+  .layout{ grid-template-columns:1fr; }
+  .panel{ order:2; }
+  .graph-card{ order:1; }
+}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--panel-edge);
+  border-radius:18px;
+  padding:18px;
+}
+
+.graph-card{ display:flex; align-items:center; justify-content:center; padding:10px; }
+.graph-card svg{ width:100%; height:auto; display:block; max-width:560px; }
+
+/* graph elements */
+.edge{ stroke:#1c2640; stroke-width:2.5; transition:stroke 0.25s, stroke-width 0.25s; }
+.edge.active{ stroke:var(--amber); stroke-width:3.5; }
+
+.node{ cursor:pointer; }
+.node .track{ fill:none; stroke:#1a2236; stroke-width:6; }
+.node .arc{
+  fill:none; stroke-width:6; stroke-linecap:round;
+  stroke:var(--mid);
+  transform:rotate(-90deg);
+  transition:stroke-dashoffset 0.45s cubic-bezier(.2,.8,.2,1), stroke 0.35s;
+}
+.node[data-status="good"] .arc{ stroke:var(--cyan); }
+.node[data-status="mid"] .arc{ stroke:var(--amber); }
+.node[data-status="bad"] .arc{ stroke:var(--coral); }
+
+.node .tick{ stroke:var(--violet); stroke-width:3.5; stroke-linecap:round; opacity:0.85; }
+.node .core{ fill:var(--deep); stroke:var(--panel-edge); stroke-width:1; transition:stroke 0.3s; }
+.node[data-status="good"] .core{ stroke:rgba(86,224,196,0.4); }
+.node[data-status="mid"] .core{ stroke:rgba(255,180,84,0.4); }
+.node[data-status="bad"] .core{ stroke:rgba(255,122,138,0.4); }
+
+.node .glow{ fill:var(--mid); opacity:0.12; transition:fill 0.35s; }
+.node[data-status="good"] .glow{ fill:var(--cyan); }
+.node[data-status="mid"] .glow{ fill:var(--amber); }
+.node[data-status="bad"] .glow{ fill:var(--coral); }
+
+.node .label{
+  font-family:'JetBrains Mono', monospace;
+  letter-spacing:0.1em;
+  fill:var(--dim); text-anchor:middle;
+}
+.node .value{
+  font-family:'JetBrains Mono', monospace;
+  font-weight:600;
+  fill:var(--hi); text-anchor:middle;
+}
+.node .target{
+  font-family:'JetBrains Mono', monospace;
+  fill:var(--violet); text-anchor:middle; opacity:0.85;
+}
+
+.selection-ring{
+  fill:none; stroke:var(--amber); stroke-width:2;
+  stroke-dasharray:4 7; opacity:0; transition:opacity 0.2s;
+}
+.node.selected .selection-ring{ opacity:1; animation:spin 7s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.flash{ fill:var(--amber); opacity:0; pointer-events:none; }
+.flash.go{ animation:flashpop 0.55s ease-out; }
+@keyframes flashpop{
+  0%{ opacity:0.55; transform:scale(0.6); }
+  100%{ opacity:0; transform:scale(1.9); }
+}
+
+.pulse-dot{
+  fill:var(--amber);
+  filter:drop-shadow(0 0 5px var(--amber));
+  transition:cx linear, cy linear, opacity linear;
+}
+
+/* panel */
+.panel{ display:flex; flex-direction:column; gap:14px; }
+
+.section-label{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; letter-spacing:0.12em;
+  color:var(--dim); text-transform:uppercase;
+  margin:0 0 10px;
+}
+
+.selected-readout{
+  font-family:'JetBrains Mono', monospace;
+  font-size:34px; font-weight:700;
+  text-align:center;
+  color:var(--mid);
+  border:1px dashed var(--panel-edge);
+  border-radius:12px;
+  padding:14px 0;
+  margin-bottom:12px;
+  transition:color 0.2s, border-color 0.2s;
+}
+.selected-readout.armed{ color:var(--amber); border-color:rgba(255,180,84,0.4); }
+
+.energy-buttons{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:6px; }
+.energy-buttons button{
+  font-family:'JetBrains Mono', monospace;
+  font-size:20px; font-weight:700;
+  padding:14px 0;
+  border-radius:10px;
+  border:1px solid var(--panel-edge);
+  background:var(--deep);
+  color:var(--mid);
+  cursor:pointer;
+  transition:transform 0.12s, border-color 0.2s, color 0.2s, background 0.2s;
+}
+.energy-buttons button:disabled{ opacity:0.35; cursor:not-allowed; }
+.energy-buttons button:not(:disabled):hover{
+  border-color:var(--amber); color:var(--amber); background:rgba(255,180,84,0.06);
+}
+.energy-buttons button:not(:disabled):active{ transform:scale(0.94); }
+.key-hint{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; color:var(--dim); text-align:center; margin:0 0 16px;
+}
+
+.message{ font-size:13px; color:var(--mid); line-height:1.5; min-height:38px; margin-bottom:14px; }
+
+.newpuzzle{
+  width:100%;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+  padding:12px 0;
+  border-radius:10px;
+  border:1px solid var(--panel-edge);
+  background:transparent;
+  color:var(--mid);
+  cursor:pointer;
+  transition:border-color 0.2s, color 0.2s;
+  margin-bottom:18px;
+}
+.newpuzzle:hover{ border-color:var(--violet); color:var(--violet); }
+
+.legend{ display:flex; flex-direction:column; gap:7px; margin-bottom:18px; }
+.legend div{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--mid); }
+.legend span.swatch{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+.log{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--dim);
+  display:flex; flex-direction:column; gap:5px;
+  max-height:120px;
+  overflow-y:auto;
+}
+.log div{ display:flex; justify-content:space-between; }
+.log div span.n{ color:var(--mid); }
+.log .empty{ color:var(--dim); font-style:italic; }
+
+.counter{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; color:var(--dim);
+  margin-top:10px;
+  text-align:right;
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header>
+    <div class="title-block">
+      <h1>RIPPLE MAP</h1>
+      <p>Graph energy calibration · <span id="nodecount">?</span>-node lattice</p>
+    </div>
+    <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
+  </header>
+
+  <div class="layout">
+    <div class="card graph-card">
+      <svg id="svg" viewBox="0 0 600 600">
+        <g id="edges"></g>
+        <g id="nodes"></g>
+      </svg>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <p class="section-label">Selected node</p>
+        <div class="selected-readout" id="selreadout">—</div>
+        <div class="energy-buttons">
+          <button data-val="1" disabled>1</button>
+          <button data-val="2" disabled>2</button>
+          <button data-val="3" disabled>3</button>
+        </div>
+        <p class="key-hint">click a node, then tap a value (or press 1 / 2 / 3)</p>
+        <div class="message" id="message">Select a node to begin calibration.</div>
+        <button class="newpuzzle" id="newpuzzle">↻ New puzzle (R)</button>
+        <p class="section-label" style="margin-bottom:8px;">Legend</p>
+        <div class="legend">
+          <div><span class="swatch" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan-soft)"></span> matched · exact</div>
+          <div><span class="swatch" style="background:var(--amber);box-shadow:0 0 6px var(--amber-soft)"></span> close · off by 1</div>
+          <div><span class="swatch" style="background:var(--coral);box-shadow:0 0 6px var(--coral-soft)"></span> off-target · off by 2+</div>
+          <div><span class="swatch" style="background:var(--violet);border-radius:2px;"></span> target marker on dial</div>
+        </div>
+        <p class="section-label" style="margin-bottom:8px;">Injection log</p>
+        <div class="log" id="log"><div class="empty">No injections yet</div></div>
+        <div class="counter" id="counter">0 injections</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    <div class="modal-icon">✓</div>
+    <h2>Calibrated</h2>
+    <p class="modal-sub">Every node in the lattice matched its target.</p>
+    <div class="modal-stats">
+      <div>
+        <span class="stat-num" id="statInjections">0</span>
+        <span class="stat-label">injections</span>
+      </div>
+      <div>
+        <span class="stat-num" id="statNodes">0</span>
+        <span class="stat-label">nodes</span>
+      </div>
+    </div>
+    <button class="modal-newpuzzle" id="modalNewPuzzle">↻ New puzzle</button>
+  </div>
+</div>
+
+<script>
+const MIN_NODES = 5;
+const MAX_NODES = 8;
+const STAGE_MS = 230;
+
+let LABELS = [];
+let EDGES = {};
+let POS = {};
+let R_OUTER = 46;
+let R_CORE = 34;
+let CIRC = 2 * Math.PI * R_OUTER;
+
+let target = {}, state = {}, maxScale = 1;
+let selected = null;
+let injections = 0;
+let log = [];
+let alreadySolved = false;
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// ---------- graph generation (variable size, randomly connected) ----------
+function buildGraphTopology(n){
+  const allLetters = "ABCDEFGHIJ";
+  const labels = allLetters.slice(0, n).split("");
+  const adj = {};
+  labels.forEach(l => adj[l] = []);
+  const edgeKeys = new Set();
+
+  function addEdge(a,b){
+    const key = [a,b].sort().join("-");
+    if(edgeKeys.has(key)) return false;
+    edgeKeys.add(key);
+    adj[a].push(b);
+    adj[b].push(a);
+    return true;
+  }
+
+  // random spanning tree -> guarantees full connectivity
+  const order = shuffle([...labels]);
+  for(let i=1;i<order.length;i++){
+    const a = order[i];
+    const b = order[Math.floor(Math.random()*i)];
+    addEdge(a,b);
+  }
+
+  // sprinkle in extra edges so the graph isn't just a bare tree
+  const extra = Math.max(1, Math.floor(n/3));
+  let added = 0, attempts = 0;
+  while(added < extra && attempts < extra*10){
+    attempts++;
+    const a = labels[Math.floor(Math.random()*n)];
+    const b = labels[Math.floor(Math.random()*n)];
+    if(a === b) continue;
+    if(addEdge(a,b)) added++;
+  }
+
+  return { labels, adj };
+}
+
+function computeLayout(labels){
+  const n = labels.length;
+  const cx = 300, cy = 300;
+  const R = Math.min(230, 130 + n*10);
+  const pos = {};
+  labels.forEach((l,i) => {
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    pos[l] = { x: cx + R*Math.cos(ang), y: cy + R*Math.sin(ang) };
+  });
+  return pos;
+}
+
+function bfsDist(source){
+  const dist = {};
+  LABELS.forEach(l => dist[l] = null);
+  dist[source] = 0;
+  const q = [source];
+  while(q.length){
+    const u = q.shift();
+    for(const v of EDGES[u]){
+      if(dist[v] === null){
+        dist[v] = dist[u] + 1;
+        q.push(v);
+      }
+    }
+  }
+  return dist;
+}
+
+function bfsParent(source){
+  const dist = {}, parent = {};
+  LABELS.forEach(l => dist[l] = null);
+  dist[source] = 0;
+  const q = [source];
+  while(q.length){
+    const u = q.shift();
+    for(const v of EDGES[u]){
+      if(dist[v] === null){
+        dist[v] = dist[u] + 1;
+        parent[v] = u;
+        q.push(v);
+      }
+    }
+  }
+  return { dist, parent };
+}
+
+// linear falloff: each hop away costs exactly 1 unit, floored at 0
+function contribution(value, dist){
+  return Math.max(value - dist, 0);
+}
+
+function applyRipple(obj, node, value){
+  const dist = bfsDist(node);
+  for(const n of LABELS){
+    obj[n] += contribution(value, dist[n]);
+  }
+}
+
+function generatePuzzle(){
+  target = {}; state = {};
+  LABELS.forEach(l => { target[l] = 0; state[l] = 0; });
+
+  const injectionCount = LABELS.length + 3;
+  for(let i=0;i<injectionCount;i++){
+    const node = LABELS[Math.floor(Math.random()*LABELS.length)];
+    const val = 1 + Math.floor(Math.random()*3);
+    applyRipple(target, node, val);
+  }
+  maxScale = Math.max(...Object.values(target), 1) * 1.2;
+}
+
+function errorOf(n){ return Math.abs(state[n] - target[n]); }
+function statusOf(n){
+  const e = errorOf(n);
+  if(e === 0) return "good";
+  if(e === 1) return "mid";
+  return "bad";
+}
+function solved(){ return LABELS.every(n => state[n] === target[n]); }
+
+// ---------- DOM ----------
+const svgEdges = document.getElementById("edges");
+const svgNodes = document.getElementById("nodes");
+const svgRoot = document.getElementById("svg");
+
+function buildGraphDOM(){
+  svgEdges.innerHTML = "";
+  svgNodes.innerHTML = "";
+
+  // node sizing scales down as the lattice grows, to avoid overlap
+  const n = LABELS.length;
+  const R = Math.min(230, 130 + n*10);
+  const chord = 2 * R * Math.sin(Math.PI / n);
+  R_OUTER = Math.max(24, Math.min(46, chord * 0.36));
+  R_CORE = R_OUTER * 0.74;
+  CIRC = 2 * Math.PI * R_OUTER;
+  const scale = R_OUTER / 46;
+
+  const drawn = new Set();
+  for(const a of LABELS){
+    for(const b of EDGES[a]){
+      const key = [a,b].sort().join("-");
+      if(drawn.has(key)) continue;
+      drawn.add(key);
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("class","edge");
+      line.setAttribute("data-key", key);
+      line.setAttribute("x1", POS[a].x); line.setAttribute("y1", POS[a].y);
+      line.setAttribute("x2", POS[b].x); line.setAttribute("y2", POS[b].y);
+      svgEdges.appendChild(line);
+    }
+  }
+
+  for(const l of LABELS){
+    const {x,y} = POS[l];
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("class","node");
+    g.setAttribute("data-id", l);
+    g.setAttribute("transform", `translate(${x},${y})`);
+
+    g.innerHTML = `
+      <circle class="glow" r="${R_OUTER+14}"></circle>
+      <circle class="selection-ring" r="${R_OUTER+9}"></circle>
+      <circle class="track" r="${R_OUTER}"></circle>
+      <circle class="arc" r="${R_OUTER}" stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC}"></circle>
+      <line class="tick" x1="0" y1="${-R_OUTER+6}" x2="0" y2="${-R_OUTER-6}"></line>
+      <circle class="core" r="${R_CORE}"></circle>
+      <circle class="flash" r="${R_CORE}"></circle>
+      <text class="label" y="${-R_OUTER-14}" style="font-size:${Math.max(10,12*scale)}px">${l}</text>
+      <text class="value" y="${7*scale}" style="font-size:${Math.max(14,25*scale)}px">0</text>
+      <text class="target" y="${25*scale}" style="font-size:${Math.max(9,11*scale)}px">→ 0</text>
+    `;
+    g.addEventListener("click", () => selectNode(l));
+    svgNodes.appendChild(g);
+  }
+}
+
+function angleToPoint(fraction, radius){
+  const ang = fraction * Math.PI * 2 - Math.PI/2;
+  return { x: radius*Math.cos(ang), y: radius*Math.sin(ang) };
+}
+
+function updateNodeVisual(n){
+  const g = svgNodes.querySelector(`[data-id="${n}"]`);
+  const status = statusOf(n);
+  g.setAttribute("data-status", status);
+
+  const fraction = Math.max(0, Math.min(1, state[n] / maxScale));
+  g.querySelector(".arc").setAttribute("stroke-dashoffset", CIRC - fraction*CIRC);
+
+  const tFraction = Math.max(0, Math.min(1, target[n] / maxScale));
+  const p1 = angleToPoint(tFraction, R_OUTER-7);
+  const p2 = angleToPoint(tFraction, R_OUTER+7);
+  const tick = g.querySelector(".tick");
+  tick.setAttribute("x1", p1.x); tick.setAttribute("y1", p1.y);
+  tick.setAttribute("x2", p2.x); tick.setAttribute("y2", p2.y);
+
+  g.querySelector(".value").textContent = state[n];
+  g.querySelector(".target").textContent = "→ " + target[n];
+}
+
+function updateAll(){
+  LABELS.forEach(updateNodeVisual);
+}
+
+function showCongrats(){
+  document.getElementById("statInjections").textContent = injections;
+  document.getElementById("statNodes").textContent = LABELS.length;
+  document.getElementById("modalBackdrop").classList.add("show");
+}
+
+function hideCongrats(){
+  document.getElementById("modalBackdrop").classList.remove("show");
+}
+
+function selectNode(n){
+  selected = n;
+  document.querySelectorAll(".node").forEach(g => {
+    g.classList.toggle("selected", g.getAttribute("data-id") === n);
+  });
+  document.getElementById("selreadout").textContent = n;
+  document.getElementById("selreadout").classList.add("armed");
+  document.querySelectorAll(".energy-buttons button").forEach(b => b.disabled = false);
+  setMessage(`Node ${n} selected. Choose 1, 2, or 3 to inject energy.`);
+}
+
+function setMessage(msg){ document.getElementById("message").textContent = msg; }
+
+function flashNode(n){
+  const g = svgNodes.querySelector(`[data-id="${n}"]`);
+  const flash = g.querySelector(".flash");
+  flash.classList.remove("go");
+  void flash.offsetWidth;
+  flash.classList.add("go");
+}
+
+function flashEdge(a,b){
+  const key = [a,b].sort().join("-");
+  const line = svgEdges.querySelector(`[data-key="${key}"]`);
+  if(!line) return;
+  line.classList.add("active");
+  setTimeout(() => line.classList.remove("active"), STAGE_MS);
+}
+
+function spawnPulseDot(a, b, duration){
+  const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  dot.setAttribute("class","pulse-dot");
+  dot.setAttribute("r", Math.max(4, R_OUTER*0.13));
+  dot.setAttribute("cx", POS[a].x);
+  dot.setAttribute("cy", POS[a].y);
+  dot.style.transitionDuration = duration + "ms";
+  svgRoot.appendChild(dot);
+  requestAnimationFrame(() => {
+    dot.setAttribute("cx", POS[b].x);
+    dot.setAttribute("cy", POS[b].y);
+  });
+  setTimeout(() => dot.remove(), duration + 40);
+}
+
+function logInjection(node, value){
+  injections++;
+  log.unshift({node, value});
+  if(log.length > 6) log.pop();
+  const el = document.getElementById("log");
+  el.innerHTML = log.map(item =>
+    `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`
+  ).join("");
+  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
+  document.getElementById("headerInjections").textContent = injections;
+}
+
+function inject(node, value){
+  const {dist, parent} = bfsParent(node);
+  // anything farther than `value` hops gets zero contribution — no point animating it
+  const reach = LABELS.filter(n => dist[n] !== null && dist[n] <= value);
+  const maxDist = Math.max(...reach.map(n => dist[n]));
+
+  for(const n of reach){
+    const d = dist[n];
+    setTimeout(() => {
+      state[n] += contribution(value, d);
+      updateNodeVisual(n);
+      flashNode(n);
+      if(d > 0) flashEdge(parent[n], n);
+    }, d * STAGE_MS);
+    if(d > 0){
+      setTimeout(() => spawnPulseDot(parent[n], n, STAGE_MS), (d-1) * STAGE_MS);
+    }
+  }
+
+  logInjection(node, value);
+
+  setTimeout(() => {
+    if(solved() && !alreadySolved){
+      alreadySolved = true;
+      setMessage("Calibrated — every node matches its target.");
+      showCongrats();
+    } else if(!solved()){
+      setMessage(`Injected ${value} energy at node ${node}.`);
+    }
+  }, maxDist * STAGE_MS + 60);
+}
+
+document.querySelectorAll(".energy-buttons button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if(selected) inject(selected, parseInt(btn.getAttribute("data-val")));
+  });
+});
+
+document.getElementById("newpuzzle").addEventListener("click", resetGame);
+document.getElementById("modalNewPuzzle").addEventListener("click", resetGame);
+document.getElementById("modalClose").addEventListener("click", hideCongrats);
+document.getElementById("modalBackdrop").addEventListener("click", (e) => {
+  if(e.target.id === "modalBackdrop") hideCongrats();
+});
+
+document.addEventListener("keydown", (e) => {
+  if(e.key.toLowerCase() === "r"){ resetGame(); return; }
+  if(e.key === "Escape"){ hideCongrats(); return; }
+  if(["1","2","3"].includes(e.key) && selected){
+    inject(selected, parseInt(e.key));
+  }
+});
+
+function resetGame(){
+  const n = MIN_NODES + Math.floor(Math.random() * (MAX_NODES - MIN_NODES + 1));
+  const topo = buildGraphTopology(n);
+  LABELS = topo.labels;
+  EDGES = topo.adj;
+  POS = computeLayout(LABELS);
+
+  buildGraphDOM();
+  generatePuzzle();
+
+  selected = null;
+  injections = 0;
+  log = [];
+  alreadySolved = false;
+  hideCongrats();
+
+  document.getElementById("nodecount").textContent = n;
+  document.getElementById("headerInjections").textContent = "0";
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  document.querySelectorAll(".energy-buttons button").forEach(b => b.disabled = true);
+  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
+  document.getElementById("counter").textContent = "0 injections";
+  setMessage(`New ${n}-node lattice generated. Select a node to begin.`);
+  updateAll();
+}
+
+resetGame();
+</script>
+</body>
+</html>
