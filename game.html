@@ -771,7 +771,16 @@ let log = [];
 let alreadySolved = false;
 let currentDifficulty = "medium";
 let currentMode = "daily";
+function updateMobileControlsVisibility() {
+  const el = document.getElementById("mobileControls");
+  if (!el) return;
 
+  if (selected && window.innerWidth <= 768) {
+    el.classList.add("show");
+  } else {
+    el.classList.remove("show");
+  }
+}
 // Seeded random for Daily consistency
 function seededRandom(seed) {
   let s = seed;
@@ -1058,11 +1067,7 @@ function selectNode(n) {
   document.getElementById("selreadout").classList.add("armed");
   setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
 
-  // Show mobile controls only on mobile
-  const mobileControls = document.getElementById("mobileControls");
-    if (mobileControls && window.innerWidth <= 768) {
-    mobileControls.classList.add("show");
-    }
+  updateMobileControlsVisibility();
 }
 
 // Hide mobile controls when no node is selected
@@ -1077,11 +1082,7 @@ function deselectNode() {
   document.getElementById("selreadout").classList.remove("armed");
   setMessage("Select a node to begin calibration.");
 
-  // Hide mobile controls
-  const mobileControls = document.getElementById("mobileControls");
-    if (mobileControls) {
-    mobileControls.classList.remove("show");
-    }
+  updateMobileControlsVisibility();
 }
 
 function setMessage(msg){ document.getElementById("message").textContent = msg; }
@@ -1247,8 +1248,12 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 
     if (currentMode === "daily" && dailyPuzzleCache !== null) {
       resetGame();           // will use cache
+      selected = null;
+        updateMobileControlsVisibility();
     } else {
       resetGame();           // will generate new for unlimited
+      selected = null;
+        updateMobileControlsVisibility();
     }
   });
 });
@@ -1299,7 +1304,7 @@ function resetCurrentPuzzle(){
     state[l] = 0;
   });
   
-  selected = null;
+  deselectNode();
   injections = 0;
   log = [];
   alreadySolved = false;
@@ -1390,7 +1395,7 @@ function resetGame(){
   }
 
   // Common reset
-  selected = null;
+  deselectNode();
   injections = 0;
   log = [];
   alreadySolved = false;
