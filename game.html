@@ -467,6 +467,114 @@ header{
   line-height: 1.5;
 }
 .howto-popover.show { display: block; }
+/* =========================
+   MOBILE IMPROVEMENTS PATCH
+   ========================= */
+
+   @media (max-width: 768px) {
+
+html {
+  font-size: 14px;
+}
+
+body {
+  font-size: 14px;
+}
+
+/* kill oversized spacing everywhere */
+.shell {
+  padding: 12px 10px 24px;
+}
+
+.card {
+  padding: 12px;
+  border-radius: 14px;
+}
+
+/* HEADER SHRINK */
+header {
+  gap: 8px;
+}
+
+.title-block h1 {
+  font-size: 20px;
+}
+
+.title-block p {
+  font-size: 10px;
+  margin-left: 0;
+}
+
+/* BUTTONS: THIS IS THE BIG ONE */
+button,
+.top-btn,
+.newpuzzle,
+.share-btn,
+.difficulty-btn {
+  font-size: 12px !important;
+  padding: 8px 10px !important;
+  border-radius: 8px;
+}
+
+.mode-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+/* PANEL TEXT SHRINK */
+.selected-readout {
+  font-size: 20px;
+  padding: 8px 0;
+}
+
+.section-label {
+  font-size: 10px;
+}
+
+.message {
+  font-size: 12px;
+}
+
+.legend div {
+  font-size: 11px;
+}
+
+.log {
+  font-size: 11px;
+}
+
+.counter {
+  font-size: 10px;
+}
+
+/* REMOVE “DESKTOP FEEL” SPACING */
+.panel {
+  gap: 10px;
+}
+
+.difficulty-select {
+  gap: 6px;
+}
+
+.header-pill {
+  font-size: 10px;
+  padding: 6px 10px;
+}
+}
+
+.graph-card svg {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+/* Critical: prevent overflow scaling weirdness */
+svg#svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+}
 </style>
 </head>
 <body>
@@ -991,6 +1099,54 @@ function updateUILockState(){
     newPuzzleBtn.textContent = isDaily ? "↻ Daily Puzzle (Locked)" : "↻ New Puzzle";
   }
 }
+// Save the current game state to localStorage
+function saveGameState() {
+  const gameState = {
+    target,
+    state,
+    injections,
+    log,
+    alreadySolved,
+    currentDifficulty,
+    currentMode,
+    LABELS,
+    EDGES,
+    POS,
+    dailyPuzzleCache,
+  };
+  localStorage.setItem('gameState', JSON.stringify(gameState));
+}
+
+// Load the saved game state from localStorage
+function loadGameState() {
+  const savedState = localStorage.getItem('gameState');
+  if (savedState) {
+    const gameState = JSON.parse(savedState);
+    target = gameState.target;
+    state = gameState.state;
+    injections = gameState.injections;
+    log = gameState.log;
+    alreadySolved = gameState.alreadySolved;
+    currentDifficulty = gameState.currentDifficulty;
+    currentMode = gameState.currentMode;
+    LABELS = gameState.LABELS;
+    EDGES = gameState.EDGES;
+    POS = gameState.POS;
+    dailyPuzzleCache = gameState.dailyPuzzleCache;
+
+    buildGraphDOM();
+    updateAll();
+    setMessage("Game progress loaded!");
+  }
+}
+
+// Call saveGameState whenever the game state changes
+document.addEventListener("keydown", saveGameState);
+document.getElementById("newpuzzle").addEventListener("click", saveGameState);
+document.getElementById("resetCurrent").addEventListener("click", saveGameState);
+
+// Load the saved game state on page load
+window.addEventListener("load", loadGameState);
 
 // Mode Toggle
 document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -1081,6 +1237,7 @@ function resetCurrentPuzzle(){
 let dailyPuzzleCache = null;
 
 function resetGame(){
+  localStorage.removeItem('gameState');
   let n;
   let randFunc = Math.random;
 
