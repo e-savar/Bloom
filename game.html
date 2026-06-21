@@ -231,7 +231,7 @@ header{
   padding:18px;
 }
 
-.graph-card{ display:flex; align-items:center; justify-content:center; padding:10px; }
+.graph-card{ display:flex; flex-direction: column; align-items:center; justify-content:flex-start; padding:10px; position: relative;}
 .graph-card svg{ width:100%; height:auto; display:block; max-width:560px; }
 
 /* graph elements */
@@ -575,6 +575,65 @@ svg#svg {
   height: auto;
   max-height: 70vh;
 }
+/* Mobile controls styling */
+/* Mobile controls styling */
+.mobile-controls {
+
+  margin-top: 12px;
+
+  display: none;
+  gap: 14px;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  background: rgba(16, 24, 42, 0.85);
+  border: 1px solid var(--amber);
+  backdrop-filter: blur(10px);
+}
+
+/* ONLY show on mobile AND when node is selected */
+@media (max-width: 768px) {
+  .mobile-controls.show {
+    display: flex;
+  }
+}
+
+.mobile-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+
+  padding: 16px 22px;
+  min-width: 64px;
+
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+
+  background: var(--amber);
+  color: var(--hi);
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: all 0.15s ease;
+}
+
+.mobile-btn:active {
+  transform: scale(0.95);
+  background: var(--cyan);
+  color: #070a11;
+  border-color: var(--cyan);
+}
+
+.mobile-btn:hover {
+  background: var(--cyan); /* Match hover effect with other buttons */
+  color: #070a11;
+}
+
 </style>
 </head>
 <body>
@@ -597,13 +656,17 @@ svg#svg {
           <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
         </div>
       </header>
-
   <div class="layout">
     <div class="card graph-card">
       <svg id="svg" viewBox="0 0 600 600">
         <g id="edges"></g>
         <g id="nodes"></g>
       </svg>
+      <div class="mobile-controls" id="mobileControls">
+        <button class="mobile-btn" data-value="1">+1</button>
+        <button class="mobile-btn" data-value="2">+2</button>
+        <button class="mobile-btn" data-value="3">+3</button>
+      </div>
     </div>
 
     <div class="panel">
@@ -979,14 +1042,14 @@ function getTodayStr(){
   const today = new Date(now.getTime() - 3*60*60*1000); // 3 AM EST
   return today.toISOString().slice(0,10);
 }
-function selectNode(n){
+function selectNode(n) {
   selected = n;
-  
+
   // Clear all selections first
   document.querySelectorAll(".node").forEach(g => {
     g.classList.remove("selected");
   });
-  
+
   // Add to the new one
   const nodeEl = document.querySelector(`.node[data-id="${n}"]`);
   if (nodeEl) nodeEl.classList.add("selected");
@@ -994,6 +1057,31 @@ function selectNode(n){
   document.getElementById("selreadout").textContent = n;
   document.getElementById("selreadout").classList.add("armed");
   setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
+
+  // Show mobile controls only on mobile
+  const mobileControls = document.getElementById("mobileControls");
+    if (mobileControls && window.innerWidth <= 768) {
+    mobileControls.classList.add("show");
+    }
+}
+
+// Hide mobile controls when no node is selected
+function deselectNode() {
+  selected = null;
+
+  document.querySelectorAll(".node").forEach(g => {
+    g.classList.remove("selected");
+  });
+
+  document.getElementById("selreadout").textContent = "—";
+  document.getElementById("selreadout").classList.remove("armed");
+  setMessage("Select a node to begin calibration.");
+
+  // Hide mobile controls
+  const mobileControls = document.getElementById("mobileControls");
+    if (mobileControls) {
+    mobileControls.classList.remove("show");
+    }
 }
 
 function setMessage(msg){ document.getElementById("message").textContent = msg; }
@@ -1351,6 +1439,14 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#howtoBtn') && !e.target.closest('.howto-popover')) {
     popover.classList.remove('show');
   }
+});
+document.querySelectorAll(".mobile-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const value = parseInt(btn.dataset.value, 10);
+    if (selected) {
+      inject(selected, value);
+    }
+  });
 });
 resetGame();
 </script>
