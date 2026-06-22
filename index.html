@@ -78,20 +78,6 @@
         </div>
 
         <p class="energy-hint">Click a node then press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</p>
-        
-        <div class="message" id="message">Select a node to begin calibration.</div>
-        
-        <p class="section-label" style="margin-bottom:8px;">Legend</p>
-        <div class="legend">
-          <div><span class="swatch" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan-soft)"></span> matched · exact</div>
-          <div><span class="swatch" style="background:var(--amber);box-shadow:0 0 6px var(--amber-soft)"></span> close · off by 1</div>
-          <div><span class="swatch" style="background:var(--coral);box-shadow:0 0 6px var(--coral-soft)"></span> off-target · off by 2+</div>
-          <div><span class="swatch" style="background:var(--violet);border-radius:2px;"></span> target marker on dial</div>
-        </div>
-        
-        <p class="section-label" style="margin-bottom:8px;">Injection log</p>
-        <div class="log" id="log"><div class="empty">No injections yet</div></div>
-        <div class="counter" id="counter">0 injections</div>
       </div>
     </div>
   </div>
@@ -182,7 +168,6 @@ let CIRC = 2 * Math.PI * R_OUTER;
 let target = {}, state = {}, maxScale = 1;
 let selected = null;
 let injections = 0;
-let log = [];
 let alreadySolved = false;
 let tutorialActive = false;
 let tutorialStep = 0;
@@ -602,8 +587,6 @@ function selectNode(n) {
 
   document.getElementById("selreadout").textContent = n;
   document.getElementById("selreadout").classList.add("armed");
-  setMessage(`Node ${n} selected. Press 1, 2, or 3 to inject energy.`);
-
   updateMobileControlsVisibility();
 }
 
@@ -617,12 +600,9 @@ function deselectNode() {
 
   document.getElementById("selreadout").textContent = "—";
   document.getElementById("selreadout").classList.remove("armed");
-  setMessage("Select a node to begin calibration.");
 
   updateMobileControlsVisibility();
 }
-
-function setMessage(msg){ document.getElementById("message").textContent = msg; }
 
 function flashNode(n){
   const g = svgNodes.querySelector(`[data-id="${n}"]`);
@@ -662,13 +642,6 @@ function spawnPulseDot(a, b, duration){
 
 function logInjection(node, value){
   injections++;
-  log.unshift({node, value});
-  if(log.length > 6) log.pop();
-  const el = document.getElementById("log");
-  el.innerHTML = log.map(item =>
-    `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`
-  ).join("");
-  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
   document.getElementById("headerInjections").textContent = injections;
 }
 
@@ -685,6 +658,7 @@ function inject(node, value){
   }
   for(const n of reach){
     const d = dist[n];
+    if (contribution(value, d) === 0) continue; // Skip nodes with no value change
     setTimeout(() => {
       state[n] += contribution(value, d);
       updateNodeVisual(n);
@@ -701,10 +675,7 @@ function inject(node, value){
   setTimeout(() => {
     if(solved() && !alreadySolved){
       alreadySolved = true;
-      setMessage("Calibrated — every node matches its target.");
       showCongrats();
-    } else if(!solved()){
-      setMessage(`Injected ${value} energy at node ${node}.`);
     }
   }, maxDist * 230 + 80);
 }
@@ -741,7 +712,6 @@ function saveGameState() {
     currentMode,
     currentDifficulty,
     injections,
-    log,
     alreadySolved,
     state,
   };
@@ -802,7 +772,6 @@ function loadGameState() {
  
   state = gameState.state;
   injections = gameState.injections;
-  log = gameState.log;
   alreadySolved = gameState.alreadySolved;
  
   maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
@@ -811,18 +780,12 @@ function loadGameState() {
   if (nodeCountEl) nodeCountEl.textContent = LABELS.length;
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent = `${modeText} · ${LABELS.length}-node lattice`;
- 
-  document.getElementById("log").innerHTML = log.length
-    ? log.map(item => `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`).join("")
-    : `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
   document.getElementById("headerInjections").textContent = injections;
  
   requestAnimationFrame(() => {
     buildGraphDOM();
     requestAnimationFrame(() => {
       updateAll();
-      setMessage("Game progress loaded!");
       computeOptimalAsync();
     });
   });
@@ -856,7 +819,6 @@ document.querySelectorAll('.difficulty-btn').forEach(btn => {
 });
 document.getElementById("newpuzzle").addEventListener("click", () => {
   if (currentMode === "daily") {
-    setMessage("Daily puzzle is fixed. It updates at 3 AM EST.");
     return;
   }
   saveGameState();
@@ -869,7 +831,6 @@ document.getElementById("resetCurrent")
 document.getElementById("modalNewPuzzle").addEventListener("click", () => {
   hideCongrats();
   if (currentMode === "daily") {
-    setMessage("Daily puzzle completed! Come back tomorrow at 3 AM EST for the next one.");
     return;
   }
   animatePuzzleTransition(resetGame);
@@ -898,7 +859,6 @@ function resetCurrentPuzzle(){
   
   deselectNode();
   injections = 0;
-  log = [];
   alreadySolved = false;
   hideCongrats();
 
@@ -910,16 +870,11 @@ function resetCurrentPuzzle(){
   document.getElementById("headerInjections").textContent = "0";
   document.getElementById("selreadout").textContent = "—";
   document.getElementById("selreadout").classList.remove("armed");
-  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = "0 injections";
   
-  setMessage(`Puzzle reset — same targets. Select a node to begin again.`);
   updateAll();
   updateMobileControlsVisibility();
 }
 function startTutorial() {
-  console.log("START TUTORIAL CALLED");
-
   tutorialActive = true;
   tutorialStep = 0;
 
@@ -1026,7 +981,6 @@ function resetGame(){
  
   deselectNode();
   injections = 0;
-  log = [];
   alreadySolved = false;
   hideCongrats();
  
@@ -1036,15 +990,10 @@ function resetGame(){
   document.getElementById("headerInjections").textContent = "0";
   document.getElementById("selreadout").textContent = "—";
   document.getElementById("selreadout").classList.remove("armed");
-  document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
-  document.getElementById("counter").textContent = "0 injections";
  
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent =
-    `${modeText} · ${n}-node lattice`;
- 
-  setMessage(`${currentMode.toUpperCase()} • ${currentDifficulty} • ${n} nodes. Select a node to begin.`);
- 
+    `${modeText} · ${n}-node lattice`; 
   updateAll();
   updateMobileControlsVisibility();
 }
