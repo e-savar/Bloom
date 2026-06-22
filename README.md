@@ -1,2 +1,2 @@
-# Bloom
+# Ripple
 Graph optimization Puzzle Game
