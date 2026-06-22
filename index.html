@@ -4,758 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RIPPLE</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-
-:root{
-  --void:#070a11;
-  --deep:#0c1220;
-  --panel:#10182a;
-  --panel-edge:#1d2740;
-  --grid:rgba(255,255,255,0.035);
-  --hi:#eef2fb;
-  --mid:#8d97b5;
-  --dim:#525c79;
-  --amber:#ffb454;
-  --amber-soft:rgba(255,180,84,0.18);
-  --cyan:#56e0c4;
-  --cyan-soft:rgba(86,224,196,0.16);
-  --coral:#ff7a8a;
-  --coral-soft:rgba(255,122,138,0.16);
-  --violet:#a99bff;
-}
-
-/* Light mode override */
-[data-theme="light"] {
-  --void:#f8f9fc;
-  --deep:#ffffff;
-  --panel:#f1f3f9;
-  --panel-edge:#d1d5e0;
-  --grid:rgba(0,0,0,0.04);
-  --hi:#1a2236;
-  --mid:#4a5a7a;
-  --dim:#64748b;
-  --amber:#f59e0b;
-}
-
-*{box-sizing:border-box;}
-
-html,body{
-  margin:0;
-  min-height:100vh;
-  background:
-    radial-gradient(ellipse 900px 600px at 20% -10%, rgba(86,224,196,0.05), transparent 60%),
-    radial-gradient(ellipse 800px 700px at 100% 110%, rgba(255,180,84,0.05), transparent 60%),
-    var(--void);
-  color:var(--hi);
-  font-family:'Space Grotesk', system-ui, sans-serif;
-}
-
-body::before{
-  content:"";
-  position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size:34px 34px;
-  opacity:0.6;
-}
-
-.shell{
-  position:relative; z-index:1;
-  max-width:1080px;
-  margin:0 auto;
-  padding:28px 20px 60px;
-}
-
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  flex-wrap:wrap;
-  gap:14px;
-  margin-bottom:22px;
-}
-
-.title-block h1{
-  margin:0;
-  font-size:clamp(26px,4.2vw,38px);
-  font-weight:700;
-  letter-spacing:0.01em;
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-.title-block h1::before{
-  content:"";
-  width:11px; height:11px; border-radius:50%;
-  background:var(--amber);
-  box-shadow:0 0 14px 3px var(--amber-soft);
-  flex-shrink:0;
-}
-.title-block p{
-  margin:6px 0 0 23px;
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px;
-  letter-spacing:0.08em;
-  color:var(--dim);
-  text-transform:uppercase;
-}
-
-.mode-toggle {
-  display: flex;
-  background: var(--panel);
-  border: 1px solid var(--panel-edge);
-  border-radius: 99px;
-  padding: 4px;
-}
-.mode-btn {
-  padding: 8px 20px;
-  border-radius: 99px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  cursor: pointer;
-  transition:
-    background .25s ease,
-    color .25s ease,
-    transform .2s ease;
-}
-.mode-btn.active {
-  background: var(--cyan);
-  color: #070a11;
-  font-weight: 600;
-  transform:translateY(-2px);
-}
-
-.header-pill{
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px;
-  letter-spacing:0.06em;
-  text-transform:uppercase;
-  padding:9px 16px;
-  border-radius:99px;
-  border:1px solid var(--panel-edge);
-  background:var(--panel);
-  color:var(--dim);
-  white-space:nowrap;
-}
-.header-pill span{ color:var(--mid); font-weight:600; }
-
-/* ---- congrats modal ---- */
-.modal-backdrop{
-  position:fixed; inset:0; z-index:50;
-  background:rgba(5,7,12,0.72);
-  backdrop-filter:blur(3px);
-  display:flex; align-items:center; justify-content:center;
-  opacity:0; pointer-events:none;
-  transition:opacity 0.25s;
-  padding:20px;
-}
-.modal-backdrop.show{ opacity:1; pointer-events:auto; }
-
-.modal-card{
-  position:relative;
-  width:100%; max-width:360px;
-  background:var(--panel);
-  border:1px solid rgba(86,224,196,0.35);
-  border-radius:20px;
-  padding:34px 32px 28px;
-  text-align:center;
-  transform:scale(0.92) translateY(6px);
-  transition:transform 0.25s cubic-bezier(.2,.8,.2,1);
-  box-shadow:0 0 70px rgba(86,224,196,0.14);
-}
-.modal-backdrop.show .modal-card{ transform:scale(1) translateY(0); }
-
-.modal-close{
-  position:absolute; top:12px; right:14px;
-  background:none; border:none;
-  color:var(--dim); font-size:20px; line-height:1;
-  cursor:pointer; padding:4px;
-  transition:color 0.2s;
-}
-.modal-close:hover{ color:var(--hi); }
-
-.modal-icon{
-  width:52px; height:52px; margin:0 auto 16px;
-  border-radius:50%;
-  background:var(--cyan-soft);
-  border:1px solid rgba(86,224,196,0.4);
-  color:var(--cyan);
-  display:flex; align-items:center; justify-content:center;
-  font-size:24px;
-}
-
-.modal-card h2{ margin:0 0 6px; font-size:23px; }
-.modal-sub{ margin:0 0 22px; color:var(--mid); font-size:13px; line-height:1.5; }
-
-.modal-stats{ display:flex; justify-content:center; gap:30px; margin-bottom:24px; }
-.modal-stats .stat-num{
-  display:block;
-  font-family:'JetBrains Mono', monospace;
-  font-size:30px; font-weight:700;
-  color:var(--hi);
-}
-.modal-stats .stat-label{
-  display:block; margin-top:4px;
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
-  color:var(--dim);
-}
-
-.modal-newpuzzle{
-  width:100%;
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px; letter-spacing:0.06em; text-transform:uppercase;
-  padding:13px 0;
-  border-radius:10px;
-  border:1px solid rgba(86,224,196,0.4);
-  background:rgba(86,224,196,0.08);
-  color:var(--cyan);
-  cursor:pointer;
-  transition:background 0.2s;
-}
-.modal-newpuzzle:hover{ background:rgba(86,224,196,0.16); }
-
-.layout{
-  display:grid;
-  grid-template-columns: 1fr 300px;
-  gap:20px;
-}
-@media (max-width:760px){
-  .layout{ grid-template-columns:1fr; }
-  .panel{ order:2; }
-  .graph-card{ order:1; }
-}
-
-.card{
-  background:var(--panel);
-  border:1px solid var(--panel-edge);
-  border-radius:18px;
-  padding:18px;
-}
-
-.graph-card{ display:flex; flex-direction: column; align-items:center; justify-content:flex-start; padding:10px; position: relative;}
-.graph-card svg{ width:100%; height:auto; display:block; max-width:560px; }
-
-/* graph elements */
-.edge{
-  stroke:#3c4f7a;
-  stroke-width:4;
-  filter: drop-shadow(0 0 3px rgba(60,79,122,0.5));
-  opacity: 0;
-  transform: translateY(-8px);
-  transition:stroke 0.25s, stroke-width 0.25s;
-}
-.edge.active{ 
-    stroke:var(--amber); 
-    stroke-width:6;
-    filter:
-    drop-shadow(0 0 6px var(--amber))
-    drop-shadow(0 0 12px var(--amber));
-}
-.edge.visible {
-    opacity: 0.95;
-}
-.edge.reveal {
-  animation: edgeDropIn 0.55s cubic-bezier(.2,.8,.2,1) forwards;
-}
-
-@keyframes edgeDropIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 0.95;
-    transform: translateY(0px);
-  }
-}
-
-.node{ cursor:pointer; }
-.node .track{ fill:none; stroke:#1a2236; stroke-width:6; }
-.node .arc{
-  fill:none; stroke-width:6; stroke-linecap:round;
-  stroke:var(--mid);
-  transform:rotate(-90deg);
-  transition:stroke-dashoffset 0.45s cubic-bezier(.2,.8,.2,1), stroke 0.35s;
-}
-.node[data-status="good"] .arc{ stroke:var(--cyan); }
-.node[data-status="mid"] .arc{ stroke:var(--amber); }
-.node[data-status="bad"] .arc{ stroke:var(--coral); }
-
-.node .tick{ stroke:var(--violet); stroke-width:3.5; stroke-linecap:round; opacity:0.85; }
-.node .core{ fill:var(--deep); stroke:var(--panel-edge); stroke-width:1; transition:stroke 0.3s; }
-.node[data-status="good"] .core{ stroke:rgba(86,224,196,0.4); }
-.node[data-status="mid"] .core{ stroke:rgba(255,180,84,0.4); }
-.node[data-status="bad"] .core{ stroke:rgba(255,122,138,0.4); }
-
-.node .glow{ fill:var(--mid); opacity:0.12; transition:fill 0.35s; }
-.node[data-status="good"] .glow{ fill:var(--cyan); }
-.node[data-status="mid"] .glow{ fill:var(--amber); }
-.node[data-status="bad"] .glow{ fill:var(--coral); }
-
-.node .label{
-  font-family:'JetBrains Mono', monospace;
-  letter-spacing:0.1em;
-  fill:var(--dim); text-anchor:middle;
-}
-.node .value{
-  font-family:'JetBrains Mono', monospace;
-  font-weight:600;
-  fill:var(--hi); text-anchor:middle;
-}
-.node .target{
-  font-family:'JetBrains Mono', monospace;
-  fill:var(--amber); text-anchor:middle; opacity:0.85;
-}
-
-.selection-ring{
-  fill:none; stroke:var(--amber); stroke-width:2;
-  stroke-dasharray:4 7; opacity:0; transition:opacity 0.2s;
-}
-.node.selected .selection-ring{ opacity:1; animation:spin 7s linear infinite; }
-@keyframes spin{ to{ transform:rotate(360deg); } }
-
-.flash{ fill:var(--amber); opacity:0; pointer-events:none; }
-.flash.go{ animation:flashpop 0.55s ease-out; }
-@keyframes flashpop{
-  0%{ opacity:0.55; transform:scale(0.6); }
-  100%{ opacity:0; transform:scale(1.9); }
-}
-
-.pulse-dot{
-  fill:var(--amber);
-  filter:drop-shadow(0 0 5px var(--amber));
-  transition:cx linear, cy linear, opacity linear;
-}
-
-/* panel */
-.panel{ display:flex; flex-direction:column; gap:14px; }
-
-.section-label{
-  font-family:'JetBrains Mono', monospace;
-  font-size:11px; letter-spacing:0.12em;
-  color:var(--dim); text-transform:uppercase;
-  margin:0 0 10px;
-}
-
-.selected-readout{
-  font-family:'JetBrains Mono', monospace;
-  font-size:34px; font-weight:700;
-  text-align:center;
-  color:var(--mid);
-  border:1px dashed var(--panel-edge);
-  border-radius:12px;
-  padding:14px 0;
-  margin-bottom:12px;
-  transition:color 0.2s, border-color 0.2s;
-}
-.selected-readout.armed{ color:var(--amber); border-color:rgba(255,180,84,0.4); }
-
-.difficulty-select{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  margin-bottom:16px;
-}
-
-.difficulty-btn{
-  font-family:'JetBrains Mono', monospace;
-  font-size:15px;
-  font-weight:600;
-  padding:14px 16px;
-  border-radius:10px;
-  border:1px solid var(--panel-edge);
-  background:var(--deep);
-  color:var(--mid);
-  cursor:pointer;
-  transition:all 0.2s;
-  text-align:left;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.difficulty-btn:hover{
-  border-color:var(--amber);
-  color:var(--amber);
-  background:rgba(255,180,84,0.06);
-}
-
-.difficulty-btn.active{
-  border-color:var(--cyan);
-  color:var(--cyan);
-  background:rgba(86,224,196,0.12);
-}
-
-.difficulty-btn .nodes{
-  font-size:13px;
-  opacity:0.7;
-}
-
-.energy-hint{
-  font-family:'JetBrains Mono', monospace;
-  font-size:11px;
-  color:var(--dim);
-  text-align:center;
-  margin:12px 0 18px;
-}
-
-.message{ 
-  font-size:13px; 
-  color:var(--mid); 
-  line-height:1.5; 
-  min-height:38px; 
-  margin-bottom:14px; 
-}
-
-.newpuzzle{
-  width:100%;
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
-  padding:12px 0;
-  border-radius:10px;
-  border:1px solid var(--panel-edge);
-  background:transparent;
-  color:var(--mid);
-  cursor:pointer;
-  transition:border-color 0.2s, color 0.2s;
-  margin-bottom:18px;
-}
-.newpuzzle:hover{ border-color:var(--violet); color:var(--violet); }
-
-.legend{ display:flex; flex-direction:column; gap:7px; margin-bottom:18px; }
-.legend div{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--mid); }
-.legend span.swatch{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-
-.log{
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px;
-  color:var(--dim);
-  display:flex; flex-direction:column; gap:5px;
-  max-height:120px;
-  overflow-y:auto;
-}
-.log div{ display:flex; justify-content:space-between; }
-.log div span.n{ color:var(--mid); }
-.log .empty{ color:var(--dim); font-style:italic; }
-
-.counter{
-  font-family:'JetBrains Mono', monospace;
-  font-size:11px; color:var(--dim);
-  margin-top:10px;
-  text-align:right;
-}
-
-.share-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--cyan);
-  color: #070a11;
-  border: none;
-  border-radius: 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 8px;
-}
-.top-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.top-btn {
-  background: var(--panel);
-  border: 1px solid var(--panel-edge);
-  color: var(--mid);
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.top-btn:hover {
-  background: var(--cyan);
-  color: #070a11;
-  border-color: var(--cyan);
-}
-
-.howto-popover {
-  position: fixed;
-
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(.8);
-
-  background: var(--panel);
-  border: 1px solid var(--cyan);
-  border-radius: 16px;
-
-  padding: 24px;
-  max-width: 420px;
-  width: calc(100% - 32px);
-
-  z-index: 999;
-
-  opacity: 0;
-  pointer-events: none;
-
-  transition:
-    opacity .25s ease,
-    transform .25s ease;
-
-  box-shadow: 0 20px 60px rgba(0,0,0,.45);
-}
-
-.howto-popover.show {
-  animation: popupAppear .3s cubic-bezier(.2,.8,.2,1);
-  opacity:1;
-  pointer-events:auto;
-  transform:translate(-50%,-50%) scale(1);
-}
-
-@keyframes popupAppear{
-  from{
-    opacity:0;
-    transform:translate(-50%,-50%) scale(.8);
-  }
-  to{
-    opacity:1;
-    transform:translate(-50%,-50%) scale(1);
-  }
-}
-/* =========================
-   MOBILE IMPROVEMENTS PATCH
-   ========================= */
-
-   @media (max-width: 768px) {
-
-html {
-  font-size: 14px;
-}
-
-body {
-  font-size: 14px;
-}
-
-/* kill oversized spacing everywhere */
-.shell {
-  padding: 12px 10px 24px;
-}
-
-.card {
-  padding: 12px;
-  border-radius: 14px;
-}
-
-/* HEADER SHRINK */
-header {
-  gap: 8px;
-}
-
-.title-block h1 {
-  font-size: 20px;
-}
-
-.title-block p {
-  font-size: 10px;
-  margin-left: 0;
-}
-
-/* BUTTONS: THIS IS THE BIG ONE */
-button,
-.top-btn,
-.newpuzzle,
-.share-btn,
-.difficulty-btn {
-  font-size: 12px !important;
-  padding: 8px 10px !important;
-  border-radius: 8px;
-}
-
-.mode-btn {
-  font-size: 11px;
-  padding: 6px 10px;
-}
-
-/* PANEL TEXT SHRINK */
-.selected-readout {
-  font-size: 20px;
-  padding: 8px 0;
-}
-
-.section-label {
-  font-size: 10px;
-}
-
-.message {
-  font-size: 12px;
-}
-
-.legend div {
-  font-size: 11px;
-}
-
-.log {
-  font-size: 11px;
-}
-
-.counter {
-  font-size: 10px;
-}
-
-/* REMOVE “DESKTOP FEEL” SPACING */
-.panel {
-  gap: 10px;
-}
-
-.difficulty-select {
-  gap: 6px;
-}
-
-.header-pill {
-  font-size: 10px;
-  padding: 6px 10px;
-}
-}
-
-.graph-card svg {
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-}
-
-/* Critical: prevent overflow scaling weirdness */
-svg#svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 70vh;
-}
-/* Mobile controls styling */
-/* Mobile controls styling */
-.mobile-controls {
-
-  margin-top: 12px;
-
-  display: none;
-  gap: 14px;
-
-  padding: 10px 12px;
-  border-radius: 14px;
-
-  background: rgba(16, 24, 42, 0.85);
-  border: 1px solid var(--amber);
-  backdrop-filter: blur(10px);
-}
-
-/* ONLY show on mobile AND when node is selected */
-@media (max-width: 768px) {
-  .mobile-controls.show {
-    display: flex;
-  }
-}
-
-.mobile-btn {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 18px;
-  font-weight: 700;
-
-  padding: 16px 22px;
-  min-width: 64px;
-
-  border-radius: 12px;
-  border: 1px solid var(--panel-edge);
-
-  background: var(--amber);
-  color: var(--hi);
-
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  transition: all 0.15s ease;
-}
-
-.mobile-btn:active {
-  transform: scale(0.95);
-  background: var(--cyan);
-  color: #070a11;
-  border-color: var(--cyan);
-}
-
-.mobile-btn:hover {
-  background: var(--cyan); /* Match hover effect with other buttons */
-  color: #070a11;
-}
-
-.graph-card.animating svg {
-  animation: graphSwap 0.45s cubic-bezier(.2,.8,.2,1);
-}
-
-@keyframes graphSwap {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  45% {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-
-  55% {
-    opacity: 0;
-    transform: scale(1.06);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-.howto-backdrop{
-  position:fixed;
-  inset:0;
-
-  background:rgba(0,0,0,.55);
-  backdrop-filter:blur(4px);
-
-  opacity:0;
-  visibility:hidden;
-
-  transition:opacity .25s ease;
-
-  z-index:998;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
-
-.howto-backdrop.show{
-  opacity:1;
-  visibility:visible;
-  pointer-events: auto;
-}
-.node.entering {
-  animation: nodeAppear 1s cubic-bezier(.2,.8,.2,1) both;
-}
-
-@keyframes nodeAppear {
-    from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -779,21 +28,9 @@ svg#svg {
       </header>
   <div class="layout">
     <div class="card graph-card">
-        <div id="optimalDisplay" style="
-  position:absolute;
-  top:10px;
-  right:12px;
-  font-family:'JetBrains Mono', monospace;
-  font-size:12px;
-  color:var(--mid);
-  background:rgba(16,24,42,0.7);
-  border:1px solid var(--panel-edge);
-  padding:6px 10px;
-  border-radius:10px;
-  backdrop-filter: blur(8px);
-">
-  Optimal Injections: —
-</div>
+        <div id="optimalDisplay">
+          Optimal Injections: —
+        </div>
       <svg id="svg" viewBox="0 0 600 600">
         <g id="edges"></g>
         <g id="nodes"></g>
@@ -846,8 +83,6 @@ svg#svg {
         <p class="section-label" style="margin-bottom:8px;">Injection log</p>
         <div class="log" id="log"><div class="empty">No injections yet</div></div>
         <div class="counter" id="counter">0 injections</div>
-
-        <button id="shareBtn" class="share-btn">Share Today's Result</button>
       </div>
     </div>
   </div>
@@ -869,6 +104,7 @@ svg#svg {
         <span class="stat-label">nodes</span>
       </div>
     </div>
+    <button class="share-btn" id="modalShareBtn" style="display:none; width:100%; margin-bottom:10px;">Share Today's Result</button>
     <button class="modal-newpuzzle" id="modalNewPuzzle">↻ New puzzle</button>
   </div>
 </div>
@@ -945,10 +181,24 @@ function seededRandom(seed) {
   };
 }
 
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]] = [arr[j],arr[i]];
+// Turns a "YYYY-MM-DD" string into a well-spread integer seed.
+function getDailySeed(dateStr) {
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = (hash * 31 + dateStr.charCodeAt(i)) | 0;
+  }
+  return hash >>> 0;
+}
+
+// Returns a fresh seeded RNG tied to "today" (3 AM EST rollover).
+function getDailyRandom() {
+  return seededRandom(getDailySeed(getTodayStr()));
+}
+
+function shuffle(arr, rand = Math.random) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
@@ -981,13 +231,13 @@ function computeOptimalAsync() {
   });
 }
 
-function buildGraphTopology(n){
+function buildGraphTopology(n, rand = Math.random){
   const allLetters = "ABCDEFGHIJKL";
   const labels = allLetters.slice(0, n).split("");
   const adj = {};
   labels.forEach(l => adj[l] = []);
   const edgeKeys = new Set();
-
+ 
   function addEdge(a,b){
     const key = [a,b].sort().join("-");
     if(edgeKeys.has(key)) return false;
@@ -996,26 +246,26 @@ function buildGraphTopology(n){
     adj[b].push(a);
     return true;
   }
-
+ 
   // spanning tree
-  const order = shuffle([...labels]);
+  const order = shuffle([...labels], rand);
   for(let i=1;i<order.length;i++){
     const a = order[i];
-    const b = order[Math.floor(Math.random()*i)];
+    const b = order[Math.floor(rand()*i)];
     addEdge(a,b);
   }
-
+ 
   // extra edges
   const extra = Math.max(2, Math.floor(n/3));
   let added = 0, attempts = 0;
   while(added < extra && attempts < extra*15){
     attempts++;
-    const a = labels[Math.floor(Math.random()*n)];
-    const b = labels[Math.floor(Math.random()*n)];
+    const a = labels[Math.floor(rand()*n)];
+    const b = labels[Math.floor(rand()*n)];
     if(a === b) continue;
     if(addEdge(a,b)) added++;
   }
-
+ 
   return { labels, adj };
 }
 
@@ -1089,7 +339,7 @@ function animatePuzzleTransition(callback){
     });
   });
 }
-function generatePuzzle(){
+function generatePuzzle(rand = Math.random){
   target = {}; 
   state = {};
   
@@ -1098,12 +348,12 @@ function generatePuzzle(){
     target[l] = 0; 
     state[l] = 0; 
   });
-
+ 
   if (LABELS.length === 0) return; // safety
-
+ 
   let injectionCount;
   let maxInjectionValue = 3;
-
+ 
   if(currentDifficulty === "easy"){
     injectionCount = LABELS.length + 2;
     maxInjectionValue = 2;
@@ -1112,25 +362,21 @@ function generatePuzzle(){
   } else {
     injectionCount = Math.floor(LABELS.length * 1.8) + 5;
   }
-
-  // Use a local random to avoid seeding conflicts
-  const localRandom = Math.random;
-
+ 
   for(let i = 0; i < injectionCount; i++){
-    const node = LABELS[Math.floor(localRandom()*LABELS.length)];
-    const val = 1 + Math.floor(localRandom()*maxInjectionValue);
+    const node = LABELS[Math.floor(rand()*LABELS.length)];
+    const val = 1 + Math.floor(rand()*maxInjectionValue);
     applyRipple(target, node, val);
   }
-
+ 
   maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
   document.getElementById("optimalDisplay").textContent =
     "Optimal Injections: computing...";
-
+ 
   requestIdleCallback(() => {
     computeOptimalAsync();
   });
 }
-
 
 function errorOf(n){ return Math.abs(state[n] - target[n]); }
 function statusOf(n){
@@ -1261,7 +507,8 @@ function updateAll(){
 function showCongrats(){
   document.getElementById("statInjections").textContent = injections;
   document.getElementById("statNodes").textContent = LABELS.length;
-  
+  const modalShareBtn = document.getElementById("modalShareBtn");
+  modalShareBtn.style.display = currentMode === "daily" ? "block" : "none";
   const modalNewBtn = document.getElementById("modalNewPuzzle");
   if (currentMode === "daily") {
     modalNewBtn.textContent = "✅ Daily Complete";
@@ -1424,47 +671,95 @@ function updateUILockState(){
 // Save the current game state to localStorage
 function saveGameState() {
   const gameState = {
-    target,
-    state,
+    currentMode,
+    currentDifficulty,
     injections,
     log,
     alreadySolved,
-    currentDifficulty,
-    currentMode,
-    LABELS,
-    EDGES,
-    POS,
-    dailyPuzzleCache,
+    state,
   };
+ 
+  if (currentMode === "daily") {
+    gameState.puzzleDate = getTodayStr();
+  } else {
+    gameState.target = target;
+    gameState.LABELS = LABELS;
+    gameState.EDGES = EDGES;
+    gameState.POS = POS;
+  }
+ 
   localStorage.setItem('gameState', JSON.stringify(gameState));
 }
 
 // Load the saved game state from localStorage
 function loadGameState() {
   const savedState = localStorage.getItem('gameState');
-  if (savedState) {
-    const gameState = JSON.parse(savedState);
+  if (!savedState) return;
+ 
+  let gameState;
+  try {
+    gameState = JSON.parse(savedState);
+  } catch (e) {
+    localStorage.removeItem('gameState');
+    return;
+  }
+ 
+  currentMode = gameState.currentMode || "daily";
+  currentDifficulty = gameState.currentDifficulty || "medium";
+  updateUILockState();
+ 
+  if (currentMode === "daily") {
+    // A new day means the saved progress no longer matches today's
+    // puzzle — just start today's puzzle fresh from the seed.
+    if (gameState.puzzleDate !== getTodayStr()) {
+      resetGame();
+      return;
+    }
+ 
+    const rand = getDailyRandom();
+    const n = 5 + Math.floor(rand() * 2); // 5 or 6 nodes
+    currentDifficulty = "medium";
+ 
+    const topo = buildGraphTopology(n, rand);
+    LABELS = topo.labels;
+    EDGES = topo.adj;
+    POS = computeLayout(LABELS);
+    generatePuzzle(rand); // deterministic — recreates today's exact target
+ 
+  } else {
     target = gameState.target;
-    state = gameState.state;
-    injections = gameState.injections;
-    log = gameState.log;
-    alreadySolved = gameState.alreadySolved;
-    currentDifficulty = gameState.currentDifficulty;
-    currentMode = gameState.currentMode;
     LABELS = gameState.LABELS;
     EDGES = gameState.EDGES;
     POS = gameState.POS;
-    dailyPuzzleCache = gameState.dailyPuzzleCache;
-
-    requestAnimationFrame(() => {
+  }
+ 
+  state = gameState.state;
+  injections = gameState.injections;
+  log = gameState.log;
+  alreadySolved = gameState.alreadySolved;
+ 
+  maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
+ 
+  const nodeCountEl = document.getElementById("nodecount");
+  if (nodeCountEl) nodeCountEl.textContent = LABELS.length;
+  const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
+  document.getElementById("modeTitle").textContent = `${modeText} · ${LABELS.length}-node lattice`;
+ 
+  document.getElementById("log").innerHTML = log.length
+    ? log.map(item => `<div><span class="n">${item.node}</span><span>+${item.value} energy</span></div>`).join("")
+    : `<div class="empty">No injections yet</div>`;
+  document.getElementById("counter").textContent = injections + (injections === 1 ? " injection" : " injections");
+  document.getElementById("headerInjections").textContent = injections;
+ 
+  requestAnimationFrame(() => {
     buildGraphDOM();
     requestAnimationFrame(() => {
-        updateAll();
-        setMessage("Game progress loaded!");
+      updateAll();
+      setMessage("Game progress loaded!");
+      computeOptimalAsync();
     });
-    });
-    updateMobileControlsVisibility();
-  }
+  });
+  updateMobileControlsVisibility();
 }
 
 // Call saveGameState whenever the game state changes
@@ -1519,7 +814,7 @@ document.getElementById("modalBackdrop").addEventListener("click", (e) => {
   if(e.target.id === "modalBackdrop") hideCongrats();
 });
 
-document.getElementById("shareBtn").addEventListener("click", () => {
+document.getElementById("modalShareBtn").addEventListener("click", () => {
   const date = new Date().toISOString().slice(0,10);
   const text = `⚡️ RIPPLE ${date}\n${currentDifficulty.toUpperCase()} • ${LABELS.length} nodes • ${injections} injections\nSolved!`;
   navigator.clipboard.writeText(text).then(() => alert("✅ Copied to clipboard!"));
@@ -1559,120 +854,72 @@ function resetCurrentPuzzle(){
   updateMobileControlsVisibility();
 }
 
-
-// Add this variable near the top with other `let` declarations
-let dailyPuzzleCache = null;
-
 function resetGame(){
   localStorage.removeItem('gameState');
-
+ 
   let n;
-  let randFunc = Math.random;
-
+  let rand = Math.random;
+ 
   if(currentMode === "daily"){
-
-    if (dailyPuzzleCache && dailyPuzzleCache.dateStr === getTodayStr()) {
-
-      // restore cache
-      n = dailyPuzzleCache.n;
-      LABELS = [...dailyPuzzleCache.LABELS];
-      EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
-      POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
-
-      target = {...dailyPuzzleCache.target};
-
-    } else {
-
-      const now = new Date();
-      const today = new Date(now.getTime() - 3*60*60*1000);
-      const dateStr = today.toISOString().slice(0,10);
-      const seed = dateStr.split('-').reduce((sum, p) => sum + parseInt(p), 0);
-
-      randFunc = seededRandom(seed);
-
-      n = 5 + Math.floor(randFunc() * 2);
-      currentDifficulty = "medium";
-
-      const topo = buildGraphTopology(n, randFunc);
-      LABELS = topo.labels;
-      EDGES = topo.adj;
-      POS = computeLayout(LABELS);
-
-      buildGraphDOM();
-      generatePuzzle();
-
-      dailyPuzzleCache = {
-        dateStr: getTodayStr(),
-        n,
-        LABELS: [...LABELS],
-        EDGES: JSON.parse(JSON.stringify(EDGES)),
-        POS: JSON.parse(JSON.stringify(POS)),
-        target: {...target}
-      };
-
-      computeOptimalAsync();
-    }
-
+    // Everything about today's puzzle — node count, topology, and target
+    // values — is derived purely from today's date seed. Calling this
+    // again (mode switch, page reload, etc.) on the same day always
+    // reproduces the exact same puzzle, so there's nothing to cache.
+    rand = getDailyRandom();
+    n = 5 + Math.floor(rand() * 2); // 5 or 6 nodes
+    currentDifficulty = "medium";
+ 
   } else {
-
-    const now = new Date();
-    const todayStr = new Date(now.getTime() - 3*60*60*1000).toISOString().slice(0,10);
-
-    if (dailyPuzzleCache && dailyPuzzleCache.dateStr !== todayStr) {
-      dailyPuzzleCache = null;
-    }
-
     let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY :
                    currentDifficulty === "medium" ? MIN_NODES_MED :
                    MIN_NODES_HARD;
-
+ 
     let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY :
                    currentDifficulty === "medium" ? MAX_NODES_MED :
                    MAX_NODES_HARD;
-
+ 
     n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
-
-    const topo = buildGraphTopology(n, randFunc);
-    LABELS = topo.labels;
-    EDGES = topo.adj;
-    POS = computeLayout(LABELS);
-
-    buildGraphDOM();
-    generatePuzzle();
-
-    computeOptimalAsync();
   }
-
+ 
+  const topo = buildGraphTopology(n, rand);
+  LABELS = topo.labels;
+  EDGES = topo.adj;
+  POS = computeLayout(LABELS);
+ 
+  buildGraphDOM();
+  generatePuzzle(rand);
+  computeOptimalAsync();
+ 
   // -------------------------
   // ALWAYS RESET RUNTIME STATE
   // -------------------------
-
+ 
   state = {};
   LABELS.forEach(l => state[l] = 0);
-
+ 
   maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
-
+ 
   deselectNode();
   injections = 0;
   log = [];
   alreadySolved = false;
   hideCongrats();
-
+ 
   const nodeCountEl = document.getElementById("nodecount");
   if (nodeCountEl) nodeCountEl.textContent = n;
-
+ 
   document.getElementById("headerInjections").textContent = "0";
   document.getElementById("selreadout").textContent = "—";
   document.getElementById("selreadout").classList.remove("armed");
   document.getElementById("log").innerHTML = `<div class="empty">No injections yet</div>`;
   document.getElementById("counter").textContent = "0 injections";
-
+ 
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent =
     `${modeText} · ${n}-node lattice`;
-
+ 
   setMessage(`${currentMode.toUpperCase()} • ${currentDifficulty} • ${n} nodes. Select a node to begin.`);
-
+ 
   updateAll();
   updateMobileControlsVisibility();
 }
