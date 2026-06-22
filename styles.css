@@ -315,6 +315,18 @@ header{
   0%{ opacity:0.55; transform:scale(0.6); }
   100%{ opacity:0; transform:scale(1.9); }
 }
+edge.tutorial-path {
+  stroke: var(--cyan);
+  stroke-width: 4px;
+  filter: drop-shadow(0 6px 18px rgba(86,224,196,0.12));
+  transition: stroke 180ms ease, stroke-width 180ms ease;
+}
+
+/* subtle node emphasis for nodes on the path */
+.node.tutorial-path-node .core {
+  fill: var(--cyan-soft);
+  transition: fill 180ms ease;
+}
 
 .pulse-dot{
   fill:var(--amber);
@@ -509,7 +521,20 @@ header{
   pointer-events:auto;
   transform:translate(-50%,-50%) scale(1);
 }
+.howto-popover button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
 
+.howto-popover button:hover {
+  background: var(--violet);
+  color: #070a11;
+}
 @keyframes popupAppear{
   from{
     opacity:0;

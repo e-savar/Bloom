@@ -93,36 +93,57 @@
 </div>
 <div class="howto-backdrop" id="howtoBackdrop"></div>
 <div class="howto-popover" id="howtoPopover">
-    <h3 style="margin:0 0 12px 0; color:var(--amber);">How to Play RIPPLE</h3>
-    <p><strong>Goal:</strong> Make every node's energy match its target value.</p>
-    <ul style="padding-left:18px; margin:12px 0;">
-      <li>Click a node to select it</li>
-      <li>Press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy</li>
-      <li>Energy ripples outward through connected nodes (stronger when closer)</li>
-      <li>Green = Perfect match</li>
-      <li>Yellow = Off by 1</li>
-      <li>Red = Off by 2+</li>
-    </ul>
-    <p><strong>Daily Mode:</strong> One puzzle per day. Medium difficulty. Updates at 3 AM EST.</p>
-    <button
-  onclick="
-    document.getElementById('howtoPopover').classList.remove('show');
-    document.getElementById('howtoBackdrop').classList.remove('show');
-  "
-  style="
-    margin-top:12px;
-    width:100%;
-    padding:10px;
-    background:var(--amber);
-    color:#070a11;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:600;
-  "
->
-  Got it
-</button>
+      <h3 style="margin:0 0 12px 0; color:var(--amber);">How to Play RIPPLE</h3>
+      <p><strong>Goal:</strong> Make every node's energy match its target value.</p>
+      <ul style="padding-left:18px; margin:12px 0;">
+        <li>Click a node to select it.</li>
+        <li>Press <strong>1</strong>, <strong>2</strong>, or <strong>3</strong> to inject energy.</li>
+        <li>Energy ripples outward through connected nodes — the strength decays with distance from the source.</li>
+        <li>That decay means nearer nodes receive more of the injected energy; farther nodes receive less.</li>
+      </ul>
+      <p style="margin-top:6px;">
+        To help understand this, the tutorial can highlight the paths a ripple travels from the source. Highlighted paths show which edges contribute energy to a node — if all contributing paths deliver the right total, the node becomes correct.
+      </p>
+     <p><strong>Daily Mode:</strong> One puzzle per day. Medium difficulty. Updates at 3 AM EST.</p>
+    <div style="display: flex; gap: 12px; margin-top: 12px;">
+      <button
+        onclick="
+          document.getElementById('howtoPopover').classList.remove('show');
+          document.getElementById('howtoBackdrop').classList.remove('show');
+        "
+        style="
+          flex: 1;
+          padding: 10px;
+          background: var(--amber);
+          color: #070a11;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+        "
+      >
+        Got it
+      </button>
+      <button
+        onclick="
+          document.getElementById('howtoPopover').classList.remove('show');
+          document.getElementById('howtoBackdrop').classList.remove('show');
+          startTutorial();
+        "
+        style="
+          flex: 1;
+          padding: 10px;
+          background: var(--cyan);
+          color: #070a11;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+        "
+      >
+        Play Tutorial
+      </button>
+    </div>
 </div>
 <div class="new-puzzle-backdrop" id="newPuzzleBackdrop">
   <div class="new-puzzle-popover" id="newPuzzlePopover">
@@ -177,26 +198,35 @@ let currentMode = "daily";
 
 const tutorialSteps = [
   {
-    text: "Welcome to RIPPLE. Let's learn how to play.",
+    text: "Welcome to RIPPLE! Let's learn how to play.",
     highlight: null
   },
   {
-    text: "Click a node to select it.",
+    text: "This is the lattice. Each circle is a node. Click a node to select it.",
     highlight: ".node"
   },
   {
-    text: "Press 1, 2, or 3 to inject energy.",
+    text: "Use the buttons below or press 1, 2, or 3 to inject energy into the selected node.",
     highlight: ".mobile-controls"
   },
   {
-    text: "Energy ripples across connected nodes.",
+    text: "Energy ripples outward through connected nodes. Stronger ripples occur closer to the source.",
     highlight: "svg"
   },
   {
-    text: "Match all node values to their targets to win.",
+    text: "Ripple strength decays with distance. The tutorial will highlight the paths the ripple takes — edges that contribute energy to a node.",
+    highlightPath: { value: 2 } // value = how far to visualize (1..3)
+  },
+  {
+    text: "Match all node values to their targets to win. Green = Perfect match, Yellow = Off by 1, Red = Off by 2+.",
     highlight: "#optimalDisplay"
+  },
+  {
+    text: "Great job! You're ready to play. Good luck!",
+    highlight: null
   }
 ];
+
 
 function updateMobileControlsVisibility() {
   const el = document.getElementById("mobileControls");
@@ -225,6 +255,36 @@ function getDailySeed(dateStr) {
     hash = (hash * 31 + dateStr.charCodeAt(i)) | 0;
   }
   return hash >>> 0;
+}
+// remove tutorial path highlights
+function clearTutorialHighlights(){
+  document.querySelectorAll(".edge.tutorial-path").forEach(el => el.classList.remove("tutorial-path"));
+  document.querySelectorAll(".node.tutorial-path-node").forEach(el => el.classList.remove("tutorial-path-node"));
+  document.querySelectorAll(".tutorial-highlight").forEach(el => el.classList.remove("tutorial-highlight"));
+}
+function highlightPathsFrom(source, maxDist = 2){
+  clearTutorialHighlights();
+  if(!source || !LABELS.includes(source)) return;
+  const { dist, parent } = bfsParent(source);
+  // highlight source node
+  const srcEl = svgNodes.querySelector(`[data-id="${source}"]`);
+  if(srcEl) srcEl.classList.add("tutorial-highlight");
+  // for each node within distance, highlight the chain of edges back to source
+  LABELS.forEach(n => {
+    if(dist[n] === null || dist[n] === 0 || dist[n] > maxDist) return;
+    let cur = n;
+    while(parent[cur] !== null){
+      const a = parent[cur];
+      const key = [a, cur].sort().join("-");
+      const line = svgEdges.querySelector(`[data-key="${key}"]`);
+      if(line) line.classList.add("tutorial-path");
+      // optionally highlight node
+      const nodeEl = svgNodes.querySelector(`[data-id="${cur}"]`);
+      if(nodeEl) nodeEl.classList.add("tutorial-path-node");
+      if(a === source) break;
+      cur = a;
+    }
+  });
 }
 
 // Returns a fresh seeded RNG tied to "today" (3 AM EST rollover).
@@ -883,6 +943,9 @@ function startTutorial() {
   tutorialActive = true;
   tutorialStep = 0;
 
+  currentDifficulty = "easy";
+  resetGame();
+
   const overlay = document.getElementById("tutorialOverlay");
 
   overlay.classList.remove("hidden");
@@ -901,14 +964,18 @@ function renderTutorial() {
   document.getElementById("tutorialProgress").textContent =
     `${tutorialStep + 1} / ${tutorialSteps.length}`;
 
-  document.querySelectorAll(".tutorial-highlight")
-    .forEach(el => el.classList.remove("tutorial-highlight"));
+  document.querySelectorAll(".tutorial-highlight").forEach(el => el.classList.remove("tutorial-highlight"));
+  clearTutorialHighlights();
 
   if (step.highlight) {
     const el = document.querySelector(step.highlight);
     if (el) el.classList.add("tutorial-highlight");
   }
-
+  if (step.highlightPath) {
+    // prefer currently selected node; fallback to first LABEL
+    const source = selected || (LABELS.length ? LABELS[0] : null);
+    if (source) highlightPathsFrom(source, step.highlightPath.value || 2);
+  }
   document.getElementById("tutorialNext").textContent =
     tutorialStep === tutorialSteps.length - 1 ? "Finish" : "Next";
 }
