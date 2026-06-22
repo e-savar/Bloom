@@ -38,11 +38,13 @@
       </header>
   <div class="layout">
     <div class="card graph-card">
+      <div id="optimalDisplayContainer">
         <div id="optimalDisplay">
           Optimal Injections: —
         </div>
-        <button class="reset-btn" id="resetCurrent">Reset Current Puzzle</button>
-
+        <button class="reset-btn" id="resetCurrent">Reset Puzzle</button>
+      </div>
+        
       <svg id="svg" viewBox="0 0 600 600">
         <g id="edges"></g>
         <g id="nodes"></g>
@@ -58,13 +60,6 @@
       <div class="card">
         <p class="section-label">Difficulty</p>
         <div class="difficulty-display" id="difficultyDisplay">Medium</div>
-      
-        <p class="section-label" style="margin:16px 0 8px;">Inject Energy</p>
-        <div class="energy-buttons">
-          <button class="energy-btn" data-value="1" disabled>+1</button>
-          <button class="energy-btn" data-value="2" disabled>+2</button>
-          <button class="energy-btn" data-value="3" disabled>+3</button>
-        </div>
         <p class="section-label" style="margin:16px 0 8px;">Puzzle Details</p>
         <ul class="puzzle-details">
           <li>Nodes: <span id="nodeCount">?</span></li>
@@ -98,7 +93,7 @@
 </div>
 <div class="howto-backdrop" id="howtoBackdrop"></div>
 <div class="howto-popover" id="howtoPopover">
-    <h3 style="margin:0 0 12px 0; color:var(--cyan);">How to Play RIPPLE</h3>
+    <h3 style="margin:0 0 12px 0; color:var(--amber);">How to Play RIPPLE</h3>
     <p><strong>Goal:</strong> Make every node's energy match its target value.</p>
     <ul style="padding-left:18px; margin:12px 0;">
       <li>Click a node to select it</li>
@@ -118,7 +113,7 @@
     margin-top:12px;
     width:100%;
     padding:10px;
-    background:var(--cyan);
+    background:var(--amber);
     color:#070a11;
     border:none;
     border-radius:8px;
@@ -553,7 +548,7 @@ function showCongrats(){
   modalShareBtn.style.display = currentMode === "daily" ? "block" : "none";
   const modalNewBtn = document.getElementById("modalNewPuzzle");
   if (currentMode === "daily") {
-    modalNewBtn.textContent = "✅ Daily Complete";
+    modalNewBtn.textContent = "Daily Complete";
     modalNewBtn.style.pointerEvents = "none";
     modalNewBtn.style.opacity = "0.6";
   } else {
