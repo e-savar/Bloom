@@ -779,6 +779,21 @@ svg#svg {
       </header>
   <div class="layout">
     <div class="card graph-card">
+        <div id="optimalDisplay" style="
+  position:absolute;
+  top:10px;
+  right:12px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--mid);
+  background:rgba(16,24,42,0.7);
+  border:1px solid var(--panel-edge);
+  padding:6px 10px;
+  border-radius:10px;
+  backdrop-filter: blur(8px);
+">
+  Optimal Injections: —
+</div>
       <svg id="svg" viewBox="0 0 600 600">
         <g id="edges"></g>
         <g id="nodes"></g>
@@ -890,7 +905,7 @@ svg#svg {
   Got it
 </button>
 </div>
-
+<script src="solver.js"></script>
 <script>
 const MIN_NODES_EASY = 4; const MAX_NODES_EASY = 4;
 const MIN_NODES_MED = 5;  const MAX_NODES_MED = 6;
@@ -914,9 +929,10 @@ function updateMobileControlsVisibility() {
   const el = document.getElementById("mobileControls");
   if (!el) return;
 
-  if (selected && window.innerWidth <= 768) {
+  const shouldShow = selected && window.innerWidth <= 768;
+  if (shouldShow && !el.classList.contains("show")) {
     el.classList.add("show");
-  } else {
+  } else if (!shouldShow && el.classList.contains("show")) {
     el.classList.remove("show");
   }
 }
@@ -935,6 +951,34 @@ function shuffle(arr){
     [arr[i],arr[j]] = [arr[j],arr[i]];
   }
   return arr;
+}
+function computeOptimalAsync() {
+  if (typeof computeOptimalInjections !== "function") return;
+
+  const labels = LABELS;
+  const edges = EDGES;
+  const tgt = target;
+
+  const token = Symbol(); // prevents race conditions
+  computeOptimalAsync._token = token;
+
+  requestIdleCallback(() => {
+    try {
+      const optimal = computeOptimalInjections(labels, edges, tgt);
+
+      // ignore stale computations
+      if (computeOptimalAsync._token !== token) return;
+      if (labels !== LABELS) return;
+
+      document.getElementById("optimalDisplay").textContent =
+        "Optimal Injections: " + (optimal ?? "?");
+
+    } catch (e) {
+      console.error("solver error:", e);
+      document.getElementById("optimalDisplay").textContent =
+        "Optimal Injections: error";
+    }
+  });
 }
 
 function buildGraphTopology(n){
@@ -1003,7 +1047,6 @@ function bfsDist(source){
   }
   return dist;
 }
-
 function bfsParent(source){
   const dist = {}, parent = {};
   LABELS.forEach(l => { dist[l] = null; parent[l] = null; });
@@ -1080,6 +1123,12 @@ function generatePuzzle(){
   }
 
   maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
+  document.getElementById("optimalDisplay").textContent =
+    "Optimal Injections: computing...";
+
+  requestIdleCallback(() => {
+    computeOptimalAsync();
+  });
 }
 
 
@@ -1204,7 +1253,9 @@ function updateNodeVisual(n){
 }
 
 function updateAll(){
-  LABELS.forEach(updateNodeVisual);
+  requestAnimationFrame(() => {
+    LABELS.forEach(updateNodeVisual);
+  });
 }
 
 function showCongrats(){
@@ -1405,15 +1456,19 @@ function loadGameState() {
     POS = gameState.POS;
     dailyPuzzleCache = gameState.dailyPuzzleCache;
 
+    requestAnimationFrame(() => {
     buildGraphDOM();
-    updateAll();
-    setMessage("Game progress loaded!");
+    requestAnimationFrame(() => {
+        updateAll();
+        setMessage("Game progress loaded!");
+    });
+    });
+    updateMobileControlsVisibility();
   }
 }
 
 // Call saveGameState whenever the game state changes
 document.addEventListener("keydown", saveGameState);
-document.getElementById("newpuzzle").addEventListener("click", saveGameState);
 document.getElementById("resetCurrent").addEventListener("click", saveGameState);
 
 // Load the saved game state on page load
@@ -1445,6 +1500,7 @@ document.getElementById("newpuzzle").addEventListener("click", () => {
     setMessage("Daily puzzle is fixed. It updates at 3 AM EST.");
     return;
   }
+  saveGameState();
   animatePuzzleTransition(resetGame);
 });
 document.getElementById("resetCurrent")
@@ -1500,6 +1556,7 @@ function resetCurrentPuzzle(){
   
   setMessage(`Puzzle reset — same targets. Select a node to begin again.`);
   updateAll();
+  updateMobileControlsVisibility();
 }
 
 
@@ -1508,28 +1565,31 @@ let dailyPuzzleCache = null;
 
 function resetGame(){
   localStorage.removeItem('gameState');
+
   let n;
   let randFunc = Math.random;
 
   if(currentMode === "daily"){
-    // Use cached puzzle if available (prevents regeneration on switch)
+
     if (dailyPuzzleCache && dailyPuzzleCache.dateStr === getTodayStr()) {
-    // Restore cache
-    n = dailyPuzzleCache.n;
-    LABELS = [...dailyPuzzleCache.LABELS];
-    EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
-    POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
-    target = {...dailyPuzzleCache.target};
-    state = {};
-    LABELS.forEach(l => state[l] = 0);
-    buildGraphDOM();
-  } else {
-      // First time in Daily mode today — generate and cache
+
+      // restore cache
+      n = dailyPuzzleCache.n;
+      LABELS = [...dailyPuzzleCache.LABELS];
+      EDGES = JSON.parse(JSON.stringify(dailyPuzzleCache.EDGES));
+      POS = JSON.parse(JSON.stringify(dailyPuzzleCache.POS));
+
+      target = {...dailyPuzzleCache.target};
+
+    } else {
+
       const now = new Date();
-      const today = new Date(now.getTime() - 3*60*60*1000); // 3 AM EST cutoff
+      const today = new Date(now.getTime() - 3*60*60*1000);
       const dateStr = today.toISOString().slice(0,10);
       const seed = dateStr.split('-').reduce((sum, p) => sum + parseInt(p), 0);
+
       randFunc = seededRandom(seed);
+
       n = 5 + Math.floor(randFunc() * 2);
       currentDifficulty = "medium";
 
@@ -1541,25 +1601,35 @@ function resetGame(){
       buildGraphDOM();
       generatePuzzle();
 
-      // Cache for the session
       dailyPuzzleCache = {
-        dateStr: getTodayStr(),                    // ← Add this
-        n: n,
+        dateStr: getTodayStr(),
+        n,
         LABELS: [...LABELS],
         EDGES: JSON.parse(JSON.stringify(EDGES)),
         POS: JSON.parse(JSON.stringify(POS)),
         target: {...target}
-        };
+      };
+
+      computeOptimalAsync();
     }
+
   } else {
-    // Only clear cache if the day has changed
+
     const now = new Date();
     const todayStr = new Date(now.getTime() - 3*60*60*1000).toISOString().slice(0,10);
+
     if (dailyPuzzleCache && dailyPuzzleCache.dateStr !== todayStr) {
-    dailyPuzzleCache = null;
+      dailyPuzzleCache = null;
     }
-    let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY : currentDifficulty === "medium" ? MIN_NODES_MED : MIN_NODES_HARD;
-    let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY : currentDifficulty === "medium" ? MAX_NODES_MED : MAX_NODES_HARD;
+
+    let minNodes = currentDifficulty === "easy" ? MIN_NODES_EASY :
+                   currentDifficulty === "medium" ? MIN_NODES_MED :
+                   MIN_NODES_HARD;
+
+    let maxNodes = currentDifficulty === "easy" ? MAX_NODES_EASY :
+                   currentDifficulty === "medium" ? MAX_NODES_MED :
+                   MAX_NODES_HARD;
+
     n = minNodes + Math.floor(Math.random() * (maxNodes - minNodes + 1));
 
     const topo = buildGraphTopology(n, randFunc);
@@ -1569,9 +1639,19 @@ function resetGame(){
 
     buildGraphDOM();
     generatePuzzle();
+
+    computeOptimalAsync();
   }
 
-  // Common reset
+  // -------------------------
+  // ALWAYS RESET RUNTIME STATE
+  // -------------------------
+
+  state = {};
+  LABELS.forEach(l => state[l] = 0);
+
+  maxScale = Math.max(...Object.values(target), 1) * 1.25 || 10;
+
   deselectNode();
   injections = 0;
   log = [];
@@ -1588,10 +1668,13 @@ function resetGame(){
   document.getElementById("counter").textContent = "0 injections";
 
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
-  document.getElementById("modeTitle").textContent = `${modeText} · ${n}-node lattice`;
+  document.getElementById("modeTitle").textContent =
+    `${modeText} · ${n}-node lattice`;
 
   setMessage(`${currentMode.toUpperCase()} • ${currentDifficulty} • ${n} nodes. Select a node to begin.`);
+
   updateAll();
+  updateMobileControlsVisibility();
 }
 
 updateUILockState();
@@ -1640,6 +1723,8 @@ document.querySelectorAll(".mobile-btn").forEach(btn => {
     }
   });
 });
+window.addEventListener("resize", updateMobileControlsVisibility);
+window.addEventListener("orientationchange", updateMobileControlsVisibility);
 window.addEventListener('load', () => {
   const popover = document.getElementById('howtoPopover');
   const backdrop = document.getElementById('howtoBackdrop');
@@ -1648,7 +1733,6 @@ window.addEventListener('load', () => {
   backdrop.classList.add('show');
 });
 resetGame();
-
 </script>
 </body>
 </html>
