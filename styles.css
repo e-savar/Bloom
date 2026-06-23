@@ -846,9 +846,25 @@ svg#svg {
   right: 12px;
 }
 @media (max-width: 768px) {
+  .reset-btn {
+    padding: 8px 10px;
+    font-size: clamp(10px, 2.4vw, 12px);
+    border-radius: 8px;
+    width: auto; /* allow it to shrink instead of full width */
+    max-width: 220px;
+  }
+
+  /* Optimal injections compact on mobile */
+  #optimalDisplay {
+    font-size: clamp(10px, 2.4vw, 11px);
+    padding: 4px 8px;
+    white-space: nowrap;
+  }
+
+  /* keep the container positioned cleanly on small screens */
   #optimalDisplayContainer {
-    top: 6px;
     right: 8px;
+    top: 6px;
   }
 }
 
