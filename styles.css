@@ -44,6 +44,7 @@ html,body{
     var(--void);
   color:var(--hi);
   font-family:'Space Grotesk', system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
 body::before{
@@ -848,7 +849,7 @@ svg#svg {
 @media (max-width: 768px) {
   .reset-btn {
     padding: 8px 10px;
-    font-size: clamp(10px, 2.4vw, 12px);
+    font-size: clamp(6px, 8px);
     border-radius: 8px;
     width: auto; /* allow it to shrink instead of full width */
     max-width: 220px;
@@ -1058,7 +1059,7 @@ svg#svg {
     border-radius: 10px;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 500;
-    font-size: 12px;
+    font-size: clamp(4px, 7px);
     cursor: pointer;
   }
   [data-theme="dark"] .reset-btn {

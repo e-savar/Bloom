@@ -23,7 +23,7 @@
           <h1>RIPPLE</h1>
           <p id="modeTitle">Daily Puzzle · <span id="nodecount">?</span>-node lattice</p>
         </div>
-        <div style="display:flex; gap:12px; align-items:center;">
+        <div style="display:flex; gap:9px; align-items:center;">
           <div class="top-controls">
             <button class="top-btn" id="howtoBtn">How to Play</button>
             <button class="top-btn" id="newPuzzleBtn" disabled>New Puzzle</button>
@@ -33,7 +33,6 @@
             <div class="mode-btn active" data-mode="daily">Daily</div>
             <div class="mode-btn" data-mode="unlimited">Unlimited</div>
           </div>
-          <div class="header-pill" id="headerPill"><span id="headerInjections">0</span> injections</div>
         </div>
       </header>
   <div class="layout">
@@ -843,7 +842,6 @@ function spawnPulseDot(a, b, duration){
 
 function logInjection(node, value){
   injections++;
-  document.getElementById("headerInjections").textContent = injections;
 }
 
 function inject(node, value){
@@ -975,7 +973,6 @@ function loadGameState() {
   if (nodeCountEl) nodeCountEl.textContent = LABELS.length;
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent = `${modeText} · ${LABELS.length}-node lattice`;
-  document.getElementById("headerInjections").textContent = injections;
  
   requestAnimationFrame(() => {
     buildGraphDOM();
@@ -1073,8 +1070,6 @@ function resetCurrentPuzzle(){
   document.querySelectorAll(".node").forEach(g => {
     g.classList.remove("selected");
   });
-
-  document.getElementById("headerInjections").textContent = "0";
   
   updateAll();
   updateMobileControlsVisibility();
@@ -1205,9 +1200,7 @@ function resetGame(){
  
   const nodeCountEl = document.getElementById("nodecount");
   if (nodeCountEl) nodeCountEl.textContent = n;
- 
-  document.getElementById("headerInjections").textContent = "0";
- 
+  
   const modeText = currentMode === "daily" ? "Daily Puzzle" : "Unlimited Mode";
   document.getElementById("modeTitle").textContent =
     `${modeText} · ${n}-node lattice`; 
