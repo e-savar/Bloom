@@ -914,7 +914,6 @@ svg#svg {
     position: relative;
   
     width: min(520px, calc(100vw - 32px));
-  
     margin-bottom: 28px;
   
     background: var(--panel);
@@ -960,26 +959,6 @@ svg#svg {
 }
 
 /* Tutorial card at bottom */
-.tutorial-card {
-  position: fixed;
-
-  left: 50%;
-  bottom: 24px;
-
-  transform: translateX(-50%);
-
-  width: min(520px, calc(100vw - 24px));
-
-  background: var(--panel);
-  border: 1px solid var(--cyan);
-  border-radius: 16px;
-
-  padding: 18px;
-
-  z-index: 2200;
-
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
-}
 
 @media (max-width:768px) {
   .tutorial-card {
